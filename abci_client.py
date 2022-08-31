@@ -9,8 +9,7 @@ import google.protobuf.duration_pb2 as duration
 
 address = "0.0.0.0"
 port = "23456"
-app_state_filename = "appstate.json"
-
+genesis_filename = "genesis.json"
 
 class Node:
     def __init__(self, name, pubkey, balance, address):
@@ -33,6 +32,14 @@ nodes = [
     #      balance=5000000000,
     #      address="cosmos134r9s82qv8fprz3y7fw5lv40yuvsh285vxev02")
 ]
+
+def getAppstateBytesFromGenesis(filename):
+    with open(filename) as genesis_file:
+        genesis_json = json.load(genesis_file)
+        app_state = genesis_json["app_state"]
+        app_state_str = json.dumps(app_state)
+        app_state_bytes = str.encode(app_state_str)
+        return app_state_bytes
 
 
 def buildConsensusParams():
@@ -83,10 +90,7 @@ if __name__ == '__main__':
 
         validators = buildValidatorList()
 
-        app_state_file = open(app_state_filename)
-        app_state_dict = json.load(app_state_file)
-        app_state_str = json.dumps(app_state_dict)
-        app_state_bytes = str.encode(app_state_str)
+        app_state_bytes = getAppstateBytesFromGenesis(genesis_filename)
 
         consensus_params = buildConsensusParams()
 
