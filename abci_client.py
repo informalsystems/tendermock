@@ -1,5 +1,9 @@
 import json
+from urllib import request
 import grpc
+import init_chain
+import begin_block
+import end_block
 import tendermint.abci.types_pb2 as atypes
 import tendermint.crypto.keys_pb2 as crypto
 import tendermint.abci.types_pb2_grpc as abci
@@ -9,7 +13,7 @@ import google.protobuf.duration_pb2 as duration
 
 address = "0.0.0.0"
 port = "23456"
-genesis_filename = "genesis.json"
+
 
 class Node:
     def __init__(self, name, pubkey, balance, address):
@@ -17,6 +21,7 @@ class Node:
         self.pubkey = pubkey
         self.balance = balance
         self.address = address
+
 
 nodes = [
     # Node(name="node1",
@@ -33,78 +38,32 @@ nodes = [
     #      address="cosmos134r9s82qv8fprz3y7fw5lv40yuvsh285vxev02")
 ]
 
-def getAppstateBytesFromGenesis(filename):
-    with open(filename) as genesis_file:
-        genesis_json = json.load(genesis_file)
-        app_state = genesis_json["app_state"]
-        app_state_str = json.dumps(app_state)
-        app_state_bytes = str.encode(app_state_str)
-        return app_state_bytes
-
-
-def buildConsensusParams():
-    block_params = params.BlockParams(max_bytes=22020096, max_gas=-1)
-
-    max_age_duration = duration.Duration()
-    max_age_duration.FromSeconds(200000000)
-    evidence_params = params.EvidenceParams(
-        max_age_num_blocks=100000,
-        max_age_duration=max_age_duration,
-        max_bytes=1048576
-    )
-
-    validator_params = params.ValidatorParams(
-        pub_key_types=["ed25519", "secp256k1"]
-    )
-
-    version_params = params.VersionParams(
-        app=1
-    )
-
-    consensus_params = params.ConsensusParams(
-        block=block_params,
-        evidence=evidence_params,
-        validator=validator_params,
-        version=version_params
-    )
-
-    return consensus_params
-
-
-def buildValidatorList():
-    validators = [
-        atypes.ValidatorUpdate(
-            pub_key=crypto.PublicKey(
-                ed25519=str.encode(node.pubkey)),
-            power=node.balance)
-        for node in nodes
-    ]
-    return validators
-
-
 if __name__ == '__main__':
     with grpc.insecure_channel(f"{address}:{port}") as channel:
         stub = abci.ABCIApplicationStub(channel)
-        # request.time = datetime.now().time()
-        chain_id = "tendermock"
 
-        validators = buildValidatorList()
+        with open("genesis.json", 'r') as genesis_file:
+            genesis_json = json.load(genesis_file)
 
-        app_state_bytes = getAppstateBytesFromGenesis(genesis_filename)
+            timestamp = times.Timestamp()
 
-        consensus_params = buildConsensusParams()
+            initChainRequest = init_chain.RequestInitChainFactory().createRequestInitChain(
+                genesis_json,
+                nodes,
+                timestamp.GetCurrentTime()
+            )
+            response = stub.InitChain(initChainRequest)
 
-        timestamp = times.Timestamp()
-        timestamp.GetCurrentTime()
+            requestBeginBlockFactory = begin_block.RequestBeginBlockFactory(
+                genesis_json["chain_id"])
+            requestEndBlockFactory = end_block.RequestEndBlockFactory()
 
-        request = atypes.RequestInitChain(
-            time=timestamp,
-            chain_id=chain_id,
-            consensus_params=consensus_params,
-            app_state_bytes=app_state_bytes,
-            initial_height=1,
-            validators=validators)
+            for height in range(1, 2):
+                print("Height=" + str(height))
+                beginBlockRequest = requestBeginBlockFactory.createRequestBeginBlock(
+                    height)
+                response = stub.BeginBlock(beginBlockRequest)
 
-        print(request)
-
-        response = stub.InitChain(request)
+                endBlockRequest = requestEndBlockFactory.createRequestEndBlock(
+                    height)
+                response = stub.EndBlock(endBlockRequest)
