@@ -68,3 +68,11 @@ Add the genesis transaction to genesis.json:
 Now, pull `genesis.json` from the container:
 
 `docker exec b9 cat /root/.simapp/config/genesis.json > genesis.json`
+
+Commit a new image with the modified filesystem:
+
+`sudo docker commit b9 imgs/testnet`
+
+Run abci in the new image:
+
+`docker run -ti -p 23456:26658 imgs/testnet simd start --transport=grpc --with-tendermint=false`
