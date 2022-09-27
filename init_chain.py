@@ -46,19 +46,19 @@ class RequestInitChainFactory():
 
         return consensus_params
 
-    def createValidatorList(self, nodes):
-        validators = [
+    def createValidatorList(self, validators):
+        validator_updates = [
             atypes.ValidatorUpdate(
                 pub_key=crypto.PublicKey(
-                    ed25519=str.encode(node.pubkey)),
-                power=node.balance)
-            for node in nodes
+                    ed25519=validator["pubkey"]),
+                power=validator["power"])
+            for validator in validators
         ]
-        return validators
+        return validator_updates
 
-    def createRequestInitChain(self, genesis_json, nodes, time):
+    def createRequestInitChain(self, genesis_json, validators, time):
         # request.time = datetime.now().time()
-        validators = self.createValidatorList(nodes)
+        validators = self.createValidatorList(validators)
 
         app_state_bytes = self.createAppstateBytes(genesis_json)
 
