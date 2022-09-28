@@ -1,0 +1,46 @@
+{
+    "body": {
+        "messages": [
+            {
+                "@type": "/cosmos.bank.v1beta1.MsgSend",
+                "from_address": "cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72",
+                "to_address": "cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t",
+                "amount": [
+                    {
+                        "denom": "stake",
+                        "amount": "50"
+                    }
+                ]
+            }
+        ],
+        "memo": "",
+        "timeout_height": "0",
+        "extension_options": [],
+        "non_critical_extension_options": []
+    },
+    "auth_info": {
+        "signer_infos": [
+            {
+                "public_key": {
+                    "@type": "/cosmos.crypto.secp256k1.PubKey",
+                    "key": "AicRCF2wkXo82DV25U9Sxe9NpntwYiNcKSwJWwd8ONah"
+                },
+                "mode_info": {
+                    "single": {
+                        "mode": "SIGN_MODE_DIRECT"
+                    }
+                },
+                "sequence": "0"
+            }
+        ],
+        "fee": {
+            "amount": [],
+            "gas_limit": "200000",
+            "payer": "",
+            "granter": ""
+        }
+    },
+    "signatures": [
+        "+iEndqFUrNTl4BnvTA/wCbCUv2tebQ+nMoSx2mVZlb1fFmPfM05aD/Z2rciou0ZF6FkGn6f5FI+OXa8Bsx1Ikg=="
+    ]
+}
