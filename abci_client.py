@@ -13,11 +13,12 @@ import tendermint.types.params_pb2 as params
 import google.protobuf.timestamp_pb2 as times
 import logging
 import typer
+import base64
 
 address = "0.0.0.0"
 port = "23456"
 
-app = typer.Typer()
+app = typer.Typer(pretty_exceptions_show_locals=False)
 
 
 def extractValidatorsFromGenesis(genesis_json):
@@ -35,7 +36,7 @@ def extractValidatorsFromGenesis(genesis_json):
     validators = [
         {
             "address": msg["validator_address"],
-            "pubkey": str.encode(msg["pubkey"]["key"]),
+            "pubkey": msg["pubkey"]["key"].encode(),
             "power": int(msg["value"]["amount"]),
         }
         for msg in validator_creations
@@ -97,15 +98,15 @@ def run(
                 # height starts at 1, but transactions for first block are at index 0
                 tx_index = height - 1
                 if tx_index < len(trace):
-                    tx = trace[height - 1]
+                    tx = trace[tx_index]
                     logging.info("Sending transactions: " + str(tx))
 
-                    tx_bytes = str.encode(json.dumps(tx))
+                    tx_bytes = base64.b64encode(json.dumps(tx).encode('utf-8'))
+                    request = atypes.RequestDeliverTx(tx=tx_bytes)
+                    print(request)
 
-                    response = stub.DeliverTx(
-                        atypes.RequestDeliverTx(tx=tx_bytes)
-                    )
-                    logging.info(f"------> ResponseEndBlock:\n{response}")
+                    response = stub.DeliverTx(request)
+                    logging.info(f"------> ResponseDeliverTx:\n{response}")
                 else:
                     logging.info("Sending no transactions")
 
