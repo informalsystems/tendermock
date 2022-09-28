@@ -59,11 +59,11 @@ Next, add genesis accounts (stake is the name of the coin on the simd app):
 
 Add a genesis transaction that sets up a validator:
 
-`docker exec b9 simd gentx --name node1 --amount=5000000000stake`
+`docker exec -it 21 simd gentx node1 --chain-id=tendermock 5000000000stake`
 
 Add the genesis transaction to genesis.json:
 
-`docker exec b9 collect-gentxs`
+`docker exec b9 simd collect-gentxs`
 
 Now, pull `genesis.json` from the container:
 
