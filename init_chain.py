@@ -26,7 +26,8 @@ class RequestInitChainFactory():
             max_age_num_blocks=int(
                 genesis_params["evidence"]["max_age_num_blocks"]),
             max_age_duration=duration.Duration(seconds=int(
-                genesis_params["evidence"]["max_age_duration"])),
+                # convert nanos to seconds
+                int(genesis_params["evidence"]["max_age_duration"]) / 1e9)),
             max_bytes=int(genesis_params["evidence"]["max_bytes"])
         )
 
