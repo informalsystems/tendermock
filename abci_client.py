@@ -212,15 +212,9 @@ def run(
                     for info in tx_dict["auth_info"]["signer_infos"]
                 ]
 
-                print(tx_auth_info)
-
-                tx_signatures = tx_dict["signatures"]
-
-                tx_protobuf = cosmostx.Tx(
-                    body=tx_body,
-                    auth_info=tx_auth_info,
-                    signatures=[signature.encode() for signature in tx_signatures],
-                )
+                tx_protobuf = cosmostx.Tx().from_dict(tx_dict)
+                tx_protobuf.body = tx_body
+                tx_protobuf.auth_info=tx_auth_info
 
                 print("Protobuf:")
                 print(tx_protobuf)
