@@ -156,7 +156,7 @@ def run(
         timestamp = times.Timestamp()
 
         initChainRequest = init_chain.RequestInitChainFactory().createRequestInitChain(
-            genesis_json, [], timestamp.GetCurrentTime()
+            genesis_json, validators, timestamp.GetCurrentTime()
         )
 
         asyncio.get_event_loop().run_until_complete(
