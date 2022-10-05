@@ -1,11 +1,10 @@
 import json
 import grpc
 import proto.tendermint.abci as abci
-import proto.tendermint.crypto as crypto
-import proto.tendermint.types as params
-import google.protobuf.timestamp_pb2 as times
-import google.protobuf.duration_pb2 as duration
-from validator import Validator
+import proto.cosmos.crypto.ed25519 as crypto
+import proto.tendermint.types as ttypes
+
+
 
 
 class RequestInitChainFactory:
@@ -17,43 +16,17 @@ class RequestInitChainFactory:
 
     def createConsensusParams(self, genesis_json):
         genesis_params = genesis_json["consensus_params"]
-        block_params = abci.BlockParams(
-            max_bytes=int(genesis_params["block"]["max_bytes"]),
-            max_gas=int(genesis_params["block"]["max_gas"]),
-        )
+    
 
-        evidence_params = params.EvidenceParams(
-            max_age_num_blocks=int(genesis_params["evidence"]["max_age_num_blocks"]),
-            max_age_duration=duration.Duration(
-                seconds=int(
-                    # convert nanos to seconds
-                    int(genesis_params["evidence"]["max_age_duration"])
-                    / 1e9
-                )
-            ).ToTimedelta(),
-            max_bytes=int(genesis_params["evidence"]["max_bytes"]),
-        )
-
-        validator_params = params.ValidatorParams(
-            pub_key_types=genesis_params["validator"]["pub_key_types"]
-        )
-
-        version_params = params.VersionParams()
-
-        consensus_params = abci.ConsensusParams(
-            block=block_params,
-            evidence=evidence_params,
-            validator=validator_params,
-            version=version_params,
-        )
+        consensus_params = abci.ConsensusParams().from_dict(genesis_params)
 
         return consensus_params
 
-    def createValidatorList(self, validators: list[Validator]):
+    def createValidatorList(self, validators: list[ttypes.Validator]):
         validator_updates = [
             abci.ValidatorUpdate(
-                pub_key=crypto.PublicKey(ed25519=validator.pubkey),
-                power=validator.power,
+                pub_key=crypto.PubKey(key=validator.pub_key),
+                power=validator.voting_power,
             )
             for validator in validators
         ]
@@ -65,7 +38,7 @@ class RequestInitChainFactory:
 
         app_state_bytes = self.createAppstateBytes(genesis_json)
 
-        consensus_params = self.createConsensusParams(genesis_json)
+        consensus_params = self.createConsensusParams(genesis_json) 
 
         request = abci.RequestInitChain(
             time=time,

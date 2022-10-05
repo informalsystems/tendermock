@@ -10,13 +10,16 @@ from urllib import request
 import init_chain
 import begin_block
 import end_block
-import proto.tendermint.abci as atypes
+from proto import tendermint_standalone
 import proto.tendermint.abci as abci
 import google.protobuf.timestamp_pb2 as times
 import proto.cosmos.tx.v1beta1 as cosmostx
+import proto.tendermint.types as ttypes
+import proto.tendermint_standalone.state as ststate
+import proto.tendermint_standalone.types as sttypes
+import proto.tendermint_standalone.version as stversion
 import logging
 import typer
-from validator import Validator
 from google.protobuf.json_format import Parse
 from grpclib.client import Channel
 import betterproto
@@ -93,33 +96,14 @@ def getClassForType(message: dict):
     return load_class(PROTO_PATH + "." + message["@type"][1:])
 
 
-def extractValidatorsFromGenesis(genesis_json):
-    gen_transactions = genesis_json["app_state"]["genutil"]["gen_txs"]
-
-    gen_messages = [
-        message for gen_tx in gen_transactions for message in gen_tx["body"]["messages"]
-    ]
-    validator_creations = [
-        message
-        for message in gen_messages
-        if message["@type"] == "/cosmos.staking.v1beta1.MsgCreateValidator"
-    ]
-
-    validators = [
-        Validator(
-            address=msg["validator_address"],
-            pubkey=msg["pubkey"]["key"].encode(),
-            power=int(msg["value"]["amount"]),
-        )
-        for msg in validator_creations
-    ]
+def extractGenesisValidatorsFromGenesis(genesis_json):
+    validators = [ttypes.Validator().from_dict(val_json) for val_json in genesis_json.get("validators", [])]
 
     return validators
 
 
 def createAnyFromDict(message):
     type_url = "/" + message["@type"][1:]
-    print(type_url)
     return Any(
         type_url=type_url,
         value=getClassForType(message)().from_dict(message).SerializeToString(),
@@ -137,6 +121,7 @@ def run(
     genesis_file: str = typer.Argument(...),
     trace_file: Optional[str] = typer.Argument(None),
 ):
+
     logging.basicConfig(filename="tendermock.log", level=logging.INFO)
 
     with (open(genesis_file, "r") as genesis_fileobject,):
@@ -151,15 +136,45 @@ def run(
 
         genesis_json = json.load(genesis_fileobject)
 
-        validators = extractValidatorsFromGenesis(genesis_json)
+        genesisValidators = extractGenesisValidatorsFromGenesis(genesis_json)
 
         timestamp = times.Timestamp()
 
         initChainRequest = init_chain.RequestInitChainFactory().createRequestInitChain(
-            genesis_json, validators, timestamp.GetCurrentTime()
+            genesis_json, genesisValidators, timestamp.GetCurrentTime()
         )
 
-        asyncio.get_event_loop().run_until_complete(
+        state = ststate.State(
+            version=ststate.Version(consensus=stversion.Consensus(block=1, app=0)),
+            chain_id=genesis_json["chain_id"],
+            initial_height=genesis_json["initial_height"],
+            # last block
+            last_block_height=0,
+            last_block_id=sttypes.BlockId(),
+            last_block_time=genesis_json["genesis_time"],
+            # validators
+            next_validators=ttypes.ValidatorSet().from_dict(
+                {"validators": genesis_json.get("validators", [])}
+            ),
+            validators=ttypes.ValidatorSet().from_dict(
+                {"validators": genesis_json.get("validators", [])}
+            ),
+            last_validators=ttypes.ValidatorSet(),
+            last_height_validators_changed=genesis_json["initial_height"],
+            # consensus params
+            consensus_params=sttypes.ConsensusParams().from_dict(
+                genesis_json["consensus_params"]
+            ),
+            last_height_consensus_params_changed=genesis_json["initial_height"],
+            # app info
+            app_hash=str.encode(json.dumps(genesis_json["app_state"])),
+        )
+
+        print(state.validators)
+
+        logging.info(f"------> RequestInitChain:\n{initChainRequest}")
+
+        response = asyncio.get_event_loop().run_until_complete(
             stub.init_chain(
                 time=initChainRequest.time,
                 chain_id=initChainRequest.chain_id,
@@ -169,6 +184,11 @@ def run(
                 app_state_bytes=initChainRequest.app_state_bytes,
             )
         )
+
+        logging.info(f"------> ResponseInitChain:\n{response}")
+
+        consensusParams = response.consensus_params
+        validators = response.validators
 
         requestBeginBlockFactory = begin_block.RequestBeginBlockFactory(
             genesis_json["chain_id"]
@@ -214,10 +234,7 @@ def run(
 
                 tx_protobuf = cosmostx.Tx().from_dict(tx_dict)
                 tx_protobuf.body = tx_body
-                tx_protobuf.auth_info=tx_auth_info
-
-                print("Protobuf:")
-                print(tx_protobuf)
+                tx_protobuf.auth_info = tx_auth_info
 
                 response = asyncio.get_event_loop().run_until_complete(
                     stub.deliver_tx(tx=tx_protobuf.SerializeToString())
