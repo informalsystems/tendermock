@@ -1,0 +1,39 @@
+syntax = "proto2";
+
+package tendermock;
+
+import "google/protobuf/duration.proto";
+import "tendermint/types/evidence.proto";
+
+message Trace {
+    repeated Block blocks = 1;
+}
+
+message Block {
+    repeated Transaction txs = 1;
+
+    optional Signers signers = 2;
+
+    optional google.protobuf.Duration time_since_last_block = 3; // timestamp of cur block = (timestamp of prev block + time_since_last_block)
+                                                                 // timestamp of first block = genesis time
+
+    repeated tendermint.types.Evidence byzantine_vals = 4;
+
+    // TODO: this is not what Tendermint does... does it need to be?
+    // if not given, one validator is chosen at random, weighted by voting power
+    optional Validator proposer = 5;
+
+    optional int64 rounds = 6 [ default = 3]; // rounds until consensus, as reported by Tendermint
+}
+
+message Transaction {
+    required bytes signed_tx = 1; // note: the transaction needs to be signed
+}
+
+message Validator {
+    required bytes address = 1;
+}
+
+message Signers {
+    repeated Validator vals = 1;
+}
