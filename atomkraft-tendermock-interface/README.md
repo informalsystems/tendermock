@@ -58,4 +58,4 @@ Eventually, it would be interesting to generate the parts of the genesis file au
 
 ### Trace format
 
-The format for traces is defined in the `proto` subfolder.
+The format for traces is defined in `proto/tendermock/traces.proto`.
