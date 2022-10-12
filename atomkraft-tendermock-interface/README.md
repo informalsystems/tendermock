@@ -58,4 +58,4 @@ Eventually, it would be interesting to generate the parts of the genesis file au
 
 ### Trace format
 
-The format for traces is defined in `proto/tendermock/traces.proto`.
+The format for traces is defined in https://github.com/informalsystems/tendermock/blob/main/atomkraft-tendermock-interface/proto/tendermock/traces.proto.
