@@ -271,6 +271,11 @@ class ResponseCheckTx(betterproto.Message):
     gas_used: int = betterproto.int64_field(6)
     events: List["Event"] = betterproto.message_field(7)
     codespace: str = betterproto.string_field(8)
+    sender: str = betterproto.string_field(9)
+    priority: int = betterproto.int64_field(10)
+    # mempool_error is set by Tendermint. ABCI applictions creating a
+    # ResponseCheckTX should not set mempool_error.
+    mempool_error: str = betterproto.string_field(11)
 
 
 @dataclass(eq=False, repr=False)
