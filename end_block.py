@@ -1,6 +1,6 @@
 import json
 import grpc
-import proto.tendermint.abci as atypes
+import proto.tendermint.abci as abci
 
 
 class RequestEndBlockFactory():
@@ -8,7 +8,7 @@ class RequestEndBlockFactory():
         self,
         height
     ):
-        request = atypes.RequestEndBlock(
+        request = abci.RequestEndBlock(
             height=height
         )
 

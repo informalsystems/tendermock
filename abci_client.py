@@ -1,28 +1,25 @@
 import asyncio
-import base64
-from dataclasses import dataclass
-from email.mime import audio
 import json
-import sys
+import logging
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict, Optional
-import grpc
-from urllib import request
-import init_chain
+
+import betterproto
+import google.protobuf.timestamp_pb2 as times
+import typer
+from grpclib.client import Channel
+
 import begin_block
 import end_block
-from proto import tendermint_standalone
+import init_chain
 import proto.tendermint.abci as abci
-import google.protobuf.timestamp_pb2 as times
-import proto.cosmos.tx.v1beta1 as cosmostx
+import proto.tendermint.state as tstate
 import proto.tendermint.types as ttypes
-import proto.tendermint_standalone.state as ststate
-import proto.tendermint_standalone.types as sttypes
-import proto.tendermint_standalone.version as stversion
-import logging
-import typer
-from google.protobuf.json_format import Parse
-from grpclib.client import Channel
-import betterproto
+import proto.tendermint.version as tversion
+import proto.tendermock as tmock
+
+import pandas
 
 HOST = "0.0.0.0"
 PORT = "26658"
@@ -52,7 +49,6 @@ class Any(betterproto.Message):
         value = casing("value").rstrip("_")  # type: ignore
         dict_.update(raw_dict.get(value, {}))
         return dict_
-
 
 def getClassForType(message: dict):
 
@@ -95,7 +91,6 @@ def getClassForType(message: dict):
 
     return load_class(PROTO_PATH + "." + message["@type"][1:])
 
-
 def extractGenesisValidatorsFromGenesis(genesis_json):
     validators = [ttypes.Validator().from_dict(val_json) for val_json in genesis_json.get("validators", [])]
 
@@ -110,12 +105,6 @@ def createAnyFromDict(message):
     )
 
 
-def createSignerInfo(info_dict):
-    result = cosmostx.SignerInfo().from_dict(info_dict)
-    result.public_key = createAnyFromDict(info_dict["public_key"])
-    return result
-
-
 @app.command()
 def run(
     genesis_file: str = typer.Argument(...),
@@ -124,12 +113,14 @@ def run(
 
     logging.basicConfig(filename="tendermock.log", level=logging.INFO)
 
-    with (open(genesis_file, "r") as genesis_fileobject,):
+    with open(genesis_file, "r") as genesis_fileobject:
 
-        trace = []
+        blocks = []
         if trace_file is not None:
             with open(trace_file, "r") as trace_fileobject:
-                trace = json.load(trace_fileobject)
+                j = json.load(trace_fileobject)
+                trace = tmock.Trace().from_dict(j)
+                blocks = trace.blocks
 
         channel = Channel(host=HOST, port=PORT)
         stub = abci.AbciApplicationStub(channel)
@@ -144,13 +135,13 @@ def run(
             genesis_json, genesisValidators, timestamp.GetCurrentTime()
         )
 
-        state = ststate.State(
-            version=ststate.Version(consensus=stversion.Consensus(block=1, app=0)),
+        state = tstate.State(
+            version=tstate.Version(consensus=tversion.Consensus(block=1, app=0)),
             chain_id=genesis_json["chain_id"],
             initial_height=genesis_json["initial_height"],
             # last block
             last_block_height=0,
-            last_block_id=sttypes.BlockId(),
+            last_block_id=ttypes.BlockId(),
             last_block_time=genesis_json["genesis_time"],
             # validators
             next_validators=ttypes.ValidatorSet().from_dict(
@@ -162,7 +153,7 @@ def run(
             last_validators=ttypes.ValidatorSet(),
             last_height_validators_changed=genesis_json["initial_height"],
             # consensus params
-            consensus_params=sttypes.ConsensusParams().from_dict(
+            consensus_params=ttypes.ConsensusParams().from_dict(
                 genesis_json["consensus_params"]
             ),
             last_height_consensus_params_changed=genesis_json["initial_height"],
@@ -187,8 +178,7 @@ def run(
 
         logging.info(f"------> ResponseInitChain:\n{response}")
 
-        consensusParams = response.consensus_params
-        validators = response.validators
+        init_chain.applyResponseInitChain(state, response)
 
         requestBeginBlockFactory = begin_block.RequestBeginBlockFactory(
             genesis_json["chain_id"]
@@ -196,8 +186,10 @@ def run(
         requestEndBlockFactory = end_block.RequestEndBlockFactory()
 
         height = 1
+        timestamp = pandas.to_datetime(genesis_json["genesis_time"], format='%Y-%m-%dT%H:%M:%S.%f%Z')
+        print(timestamp)
 
-        while height <= 4:
+        while height < len(blocks):
             print("Height=" + str(height))
             logging.info("Height=" + str(height))
             beginBlockRequest = requestBeginBlockFactory.createRequestBeginBlock(height)
@@ -215,31 +207,17 @@ def run(
             # deliver transactions for current step
             # height starts at 1, but transactions for first block are at index 0
             tx_index = height - 1
-            if tx_index < len(trace):
-                tx_dict = trace[tx_index]
-                logging.info("Sending transactions: " + str(tx_dict))
+            block_txs = blocks[tx_index].txs
+            if block_txs:
+                for tx in block_txs:  
+                    logging.info("Sending transaction: " + str(tx))
 
-                tx_body = cosmostx.TxBody().from_dict(tx_dict["body"])
+                    tx_bytes = tx.signed_tx
 
-                tx_body.messages = [
-                    createAnyFromDict(message)
-                    for message in tx_dict["body"]["messages"]
-                ]
-                tx_auth_info = cosmostx.AuthInfo().from_dict(tx_dict["auth_info"])
-
-                tx_auth_info.signer_infos = [
-                    createSignerInfo(info)
-                    for info in tx_dict["auth_info"]["signer_infos"]
-                ]
-
-                tx_protobuf = cosmostx.Tx().from_dict(tx_dict)
-                tx_protobuf.body = tx_body
-                tx_protobuf.auth_info = tx_auth_info
-
-                response = asyncio.get_event_loop().run_until_complete(
-                    stub.deliver_tx(tx=tx_protobuf.SerializeToString())
-                )
-                logging.info(f"------> ResponseDeliverTx:\n{response}")
+                    response = asyncio.get_event_loop().run_until_complete(
+                        stub.deliver_tx(tx=tx_bytes)
+                    )
+                    logging.info(f"------> ResponseDeliverTx:\n{response}")
             else:
                 logging.info("Sending no transactions")
 

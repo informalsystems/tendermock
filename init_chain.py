@@ -1,10 +1,8 @@
 import json
-import grpc
-import proto.tendermint.abci as abci
-import proto.cosmos.crypto.ed25519 as crypto
 import proto.tendermint.types as ttypes
-
-
+import proto.tendermint.crypto as tcrypto
+import proto.tendermint.state as tstate
+import proto.tendermint.abci as abci
 
 
 class RequestInitChainFactory:
@@ -18,14 +16,14 @@ class RequestInitChainFactory:
         genesis_params = genesis_json["consensus_params"]
     
 
-        consensus_params = abci.ConsensusParams().from_dict(genesis_params)
+        consensus_params = ttypes.ConsensusParams().from_dict(genesis_params)
 
         return consensus_params
 
     def createValidatorList(self, validators: list[ttypes.Validator]):
         validator_updates = [
             abci.ValidatorUpdate(
-                pub_key=crypto.PubKey(key=validator.pub_key),
+                pub_key=tcrypto.PubKey(key=validator.pub_key),
                 power=validator.voting_power,
             )
             for validator in validators
@@ -50,3 +48,17 @@ class RequestInitChainFactory:
         )
 
         return request
+
+def updateConsensusParams(params: abci.ConsensusParams, updates: abci.ConsensusParams):
+    # need to mirror behaviour from tendermint/types/params.go:UpdateConsensusParams
+    # but maybe modify consensusParams in-place
+   pass
+
+def applyResponseInitChain(state: tstate.State, response: abci.ResponseInitChain):
+    if len(response.app_hash) > 0: state.app_hash = response.app_hash
+
+    if response.consensus_params != None:
+        updateConsensusParams(state.consensus_params, response.consensus_params)
+
+    
+    
