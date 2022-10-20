@@ -1,8 +1,11 @@
 import asyncio
 import proto.tendermint.rpc.grpc as tgrpc
+import proto.tendermock as tmock
 from grpclib.server import Server
 from grpclib import GRPCError, const
 from abci_client import *
+import nest_asyncio
+import time
 
 import typer
 
@@ -16,14 +19,21 @@ app = typer.Typer(pretty_exceptions_show_locals=False)
 
 
 class BroadcastApiService(tgrpc.BroadcastApiBase):
-    def __init__(self, abci_client):
-        pass
+    def __init__(self, abci_client: ABCI_Client):
+        self.abci_client = abci_client
 
     async def ping(self) -> "tgrpc.ResponsePing":
         raise GRPCError(const.Status.UNIMPLEMENTED)
 
     async def broadcast_tx(self, tx: bytes) -> "tgrpc.ResponseBroadcastTx":
-        raise GRPCError(const.Status.UNIMPLEMENTED)
+        tx = tmock.Transaction(signed_tx=tx)
+        block = tmock.Block(
+            txs=[
+                tx,
+            ]
+        )
+        print(block)
+        self.abci_client.runBlock(block)
 
 
 async def run(
@@ -37,8 +47,19 @@ async def run(
 
     abci_client = ABCI_Client(app_host, int(app_port), genesis_file)
 
-    server = Server([BroadcastApiService(abci_client)])
+    service = BroadcastApiService(abci_client)
+
+    server = Server([service])
     await server.start(tendermock_host, int(tendermock_port))
+
+    time.sleep(0.1)
+
+    await service.broadcast_tx(
+        tx="""Co4BCosBChwvY29zbW9zLmJhbmsudjFiZXRhMS5Nc2dTZW5kEmsKLWNvc21vczE1M3JwZG5wM2pjcTRrcGFjOG5qbHlmNGdtZjcyNGhtNnJlcHU3MhItY29zbW9zMXg2M3kycDd3enN5ZjlsbjBhdDU2dmRwZTN4NjZqYWY5cXpoODZ0GgsKBXN0YWtlEgI1MBJWCk4KRgofL2Nvc21vcy5jcnlwdG8uc2VjcDI1NmsxLlB1YktleRIjCiECJxEIXbCRejzYNXblT1LF702me3BiI1wpLAlbB3w41qESBAoCCAESBBDAmgwaQPohJ3ahVKzU5eAZ70wP8AmwlL9rXm0PpzKEsdplWZW9XxZj3zNOWg/2dq3IqLtGRehZBp+n+RSPjl2vAbMdSJI=""".encode(
+            "ascii"
+        )
+    )
+
     await server.wait_closed()
 
 
@@ -50,7 +71,10 @@ def serveBroadcastApi(
     app_host=APP_HOST,
     app_port=APP_PORT,
 ):
-    response = asyncio.get_event_loop().run_until_complete(
+    # allows nesting event loops, see https://pypi.org/project/nest-asyncio/
+    nest_asyncio.apply()
+
+    response = asyncio.run(
         run(
             genesis_file,
             tendermock_host=tendermock_host,

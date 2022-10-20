@@ -24,7 +24,7 @@ class ABCI_Client:
         self.port = application_port
         self.state = tstate.State()
         channel = Channel(host=self.host, port=self.port)
-        stub = abci.AbciApplicationStub(channel)
+        self.stub = abci.AbciApplicationStub(channel)
 
         with open(genesis_file, "r") as genesis_fileobject:
             genesis_json = json.load(genesis_fileobject)
@@ -68,7 +68,7 @@ class ABCI_Client:
             logging.info(f"------> RequestInitChain:\n{initChainRequest}")
 
             response = asyncio.get_event_loop().run_until_complete(
-                stub.init_chain(
+                self.stub.init_chain(
                     time=initChainRequest.time,
                     chain_id=initChainRequest.chain_id,
                     consensus_params=initChainRequest.consensus_params,
@@ -82,11 +82,17 @@ class ABCI_Client:
 
             init_chain.applyResponseInitChain(self.state, response)
 
-    def beginBlock(self, block: tmock.Block):
+    def _beginBlock(self, block: tmock.Block):
         # TODO: default logic, change this later to take the values from the given block
+        signers = {val: True for val in self.state.last_validators.validators}
 
         beginBlockRequest = self._createRequestBeginBlock(
             height=self.state.last_block_height + 1,
+            last_signers=signers,
+            last_block_timestamp=self.state.last_block_time,
+            byzantine_vals=[],
+            proposer_address=self.state.last_validators.proposer.address,
+            last_rounds_to_consensus=3,
         )
 
         response = asyncio.get_event_loop().run_until_complete(
@@ -100,38 +106,41 @@ class ABCI_Client:
 
         logging.info(f"------> ResponseBeginBlock:\n{response}")
 
-    def deliverTxs(self, txs: list[bytes]):
+    def _deliverTxs(self, txs: list[bytes]):
         for tx in txs:
             logging.info("Sending transaction: " + str(tx))
 
             tx_bytes = tx.signed_tx
 
+            print(tx_bytes)
+
             response = asyncio.get_event_loop().run_until_complete(
                 self.stub.deliver_tx(tx=tx_bytes)
             )
+            print(response)
             logging.info(f"------> ResponseDeliverTx:\n{response}")
 
-    def endBlock(self):
+    def _endBlock(self):
         response = asyncio.get_event_loop().run_until_complete(
             self.stub.end_block(height=self.state.last_block_height + 1)
         )
         logging.info(f"------> ResponseEndBlock:\n{response}")
 
-    def commit(self):
+    def _commit(self):
         response = asyncio.get_event_loop().run_until_complete(self.stub.commit())
         logging.info(f"------> ResponseCommit:\n{response}")
 
     def runBlock(self, block: tmock.Block):
-        self.beginBlock(block)
+        self._beginBlock(block)
 
         block_txs = block.txs
         if block_txs:
-            self.deliverTxs(block_txs)
+            self._deliverTxs(block_txs)
         else:
             logging.info("Sending no transactions")
 
-        self.endBlock()
-        self.commit()
+        self._endBlock()
+        self._commit()
 
     def _createHeader(
         self,
@@ -144,7 +153,7 @@ class ABCI_Client:
         header = ttypes.Header(
             chain_id=self.state.chain_id,
             height=height,
-            time=last_block_timestamp,
+            # time=last_block_timestamp,
             proposer_address=proposer_address,
         )
         return header
@@ -167,15 +176,14 @@ class ABCI_Client:
         proposer_address: bytes,
         last_rounds_to_consensus: int,
     ):
-        header = self.createHeader(
-            height,
-            last_signers,
+        header = self._createHeader(
+            height=height,
             last_block_timestamp=last_block_timestamp,
             byzantine_vals=byzantine_vals,
             proposer_address=proposer_address,
         )
 
-        last_commit_info = self.createLastCommitInfo(
+        last_commit_info = self._createLastCommitInfo(
             last_rounds_to_consensus, last_signers
         )
 
