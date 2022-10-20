@@ -82,6 +82,17 @@ class ABCI_Client:
 
             init_chain.applyResponseInitChain(self.state, response)
 
+    def checkTx(self, tx: bytes) -> abci.ResponseCheckTx:
+        print("checking tx")
+
+        response = asyncio.get_event_loop().run_until_complete(
+            self.stub.check_tx(tx=tx, type=abci.CheckTxType.NEW)
+        )
+        
+        print("checked tx")
+
+        return response
+
     def _beginBlock(self, block: tmock.Block):
         # TODO: default logic, change this later to take the values from the given block
         signers = {val: True for val in self.state.last_validators.validators}
@@ -106,9 +117,11 @@ class ABCI_Client:
 
         logging.info(f"------> ResponseBeginBlock:\n{response}")
 
-    def _deliverTxs(self, txs: list[bytes]):
-        for tx in txs:
+    def _deliverTxs(self, txs: list[bytes]) -> list[abci.ResponseDeliverTx]:
+        responses = [abci.ResponseDeliverTx()] * len(txs)
+        for (index, tx) in enumerate(txs):
             logging.info("Sending transaction: " + str(tx))
+            print("Sending transaction: " + str(tx))
 
             tx_bytes = tx.signed_tx
 
@@ -119,6 +132,8 @@ class ABCI_Client:
             )
             print(response)
             logging.info(f"------> ResponseDeliverTx:\n{response}")
+            responses[index] = response
+        return responses
 
     def _endBlock(self):
         response = asyncio.get_event_loop().run_until_complete(
@@ -130,17 +145,20 @@ class ABCI_Client:
         response = asyncio.get_event_loop().run_until_complete(self.stub.commit())
         logging.info(f"------> ResponseCommit:\n{response}")
 
-    def runBlock(self, block: tmock.Block):
+    # for block.txs[i], the ResponseDeliverTx is at position i of the returned list
+    def runBlock(self, block: tmock.Block) -> list[abci.ResponseDeliverTx]:
         self._beginBlock(block)
 
         block_txs = block.txs
         if block_txs:
-            self._deliverTxs(block_txs)
+            responses = self._deliverTxs(block_txs)
         else:
             logging.info("Sending no transactions")
+            responses = []
 
         self._endBlock()
         self._commit()
+        return responses
 
     def _createHeader(
         self,
