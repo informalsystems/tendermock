@@ -23,6 +23,8 @@ class ABCI_Client:
         self.host = application_host
         self.port = application_port
         self.state = tstate.State()
+        channel = Channel(host=self.host, port=self.port)
+        stub = abci.AbciApplicationStub(channel)
 
         with open(genesis_file, "r") as genesis_fileobject:
             genesis_json = json.load(genesis_fileobject)
@@ -65,24 +67,22 @@ class ABCI_Client:
 
             logging.info(f"------> RequestInitChain:\n{initChainRequest}")
 
-            with Channel(host=self.host, port=self.port) as channel:
-                stub = abci.AbciApplicationStub(channel)
-                response = asyncio.get_event_loop().run_until_complete(
-                    stub.init_chain(
-                        time=initChainRequest.time,
-                        chain_id=initChainRequest.chain_id,
-                        consensus_params=initChainRequest.consensus_params,
-                        validators=initChainRequest.validators,
-                        initial_height=initChainRequest.initial_height,
-                        app_state_bytes=initChainRequest.app_state_bytes,
-                    )
+            response = asyncio.get_event_loop().run_until_complete(
+                stub.init_chain(
+                    time=initChainRequest.time,
+                    chain_id=initChainRequest.chain_id,
+                    consensus_params=initChainRequest.consensus_params,
+                    validators=initChainRequest.validators,
+                    initial_height=initChainRequest.initial_height,
+                    app_state_bytes=initChainRequest.app_state_bytes,
                 )
+            )
 
-                logging.info(f"------> ResponseInitChain:\n{response}")
+            logging.info(f"------> ResponseInitChain:\n{response}")
 
-                init_chain.applyResponseInitChain(self.state, response)
+            init_chain.applyResponseInitChain(self.state, response)
 
-    def beginBlock(self, block: tmock.Block, stub: abci.AbciApplicationStub):
+    def beginBlock(self, block: tmock.Block):
         # TODO: default logic, change this later to take the values from the given block
 
         beginBlockRequest = self._createRequestBeginBlock(
@@ -90,7 +90,7 @@ class ABCI_Client:
         )
 
         response = asyncio.get_event_loop().run_until_complete(
-            stub.begin_block(
+            self.stub.begin_block(
                 header=beginBlockRequest.header,
                 hash=beginBlockRequest.hash,
                 last_commit_info=beginBlockRequest.last_commit_info,
@@ -100,40 +100,38 @@ class ABCI_Client:
 
         logging.info(f"------> ResponseBeginBlock:\n{response}")
 
-    def deliverTxs(self, txs: list[bytes], stub: abci.AbciApplicationStub):
+    def deliverTxs(self, txs: list[bytes]):
         for tx in txs:
             logging.info("Sending transaction: " + str(tx))
 
             tx_bytes = tx.signed_tx
 
             response = asyncio.get_event_loop().run_until_complete(
-                stub.deliver_tx(tx=tx_bytes)
+                self.stub.deliver_tx(tx=tx_bytes)
             )
             logging.info(f"------> ResponseDeliverTx:\n{response}")
 
-    def endBlock(self, stub):
+    def endBlock(self):
         response = asyncio.get_event_loop().run_until_complete(
-            stub.end_block(height=self.state.last_block_height + 1)
+            self.stub.end_block(height=self.state.last_block_height + 1)
         )
         logging.info(f"------> ResponseEndBlock:\n{response}")
 
-    def commit(self, stub):
-        response = asyncio.get_event_loop().run_until_complete(stub.commit())
+    def commit(self):
+        response = asyncio.get_event_loop().run_until_complete(self.stub.commit())
         logging.info(f"------> ResponseCommit:\n{response}")
 
     def runBlock(self, block: tmock.Block):
-        with Channel(host=self.host, port=self.port) as channel:
-            stub = abci.AbciApplicationStub(channel)
-            self.beginBlock(block, stub)
+        self.beginBlock(block)
 
-            block_txs = block.txs
-            if block_txs:
-                self.deliverTxs(block_txs, stub)
-            else:
-                logging.info("Sending no transactions")
+        block_txs = block.txs
+        if block_txs:
+            self.deliverTxs(block_txs)
+        else:
+            logging.info("Sending no transactions")
 
-            self.endBlock(stub)
-            self.commit(stub)
+        self.endBlock()
+        self.commit()
 
     def _createHeader(
         self,

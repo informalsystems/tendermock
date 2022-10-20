@@ -26,7 +26,6 @@ class BroadcastApiService(tgrpc.BroadcastApiBase):
         raise GRPCError(const.Status.UNIMPLEMENTED)
 
 
-@app.command()
 async def run(
     genesis_file: str,
     tendermock_host=TM_HOST,
@@ -35,11 +34,31 @@ async def run(
     app_port=APP_PORT,
 ):
     logging.basicConfig(filename="tendermock.log", level=logging.INFO)
-    server = Server([BroadcastApiService()])
-    await server.start("127.0.0.1", 50051)
+
+    abci_client = ABCI_Client(app_host, int(app_port), genesis_file)
+
+    server = Server([BroadcastApiService(abci_client)])
+    await server.start(tendermock_host, int(tendermock_port))
     await server.wait_closed()
 
-def serveBroadcastApi()
+
+@app.command()
+def serveBroadcastApi(
+    genesis_file: str,
+    tendermock_host=TM_HOST,
+    tendermock_port=TM_PORT,
+    app_host=APP_HOST,
+    app_port=APP_PORT,
+):
+    response = asyncio.get_event_loop().run_until_complete(
+        run(
+            genesis_file,
+            tendermock_host=tendermock_host,
+            tendermock_port=tendermock_port,
+            app_host=app_host,
+            app_port=app_port,
+        )
+    )
 
 
 if __name__ == "__main__":
