@@ -158,6 +158,8 @@ class ABCI_Client:
 
         self._endBlock()
         self._commit()
+
+        self.state.last_block_height += 1
         return responses
 
     def _createHeader(
