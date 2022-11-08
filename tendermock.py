@@ -108,7 +108,7 @@ class TendermintRPC:
         print("prove: " + str(prove))
 
         response = self.abci_client.abci_query(data, path, height, prove)
-        return Success(result)
+        return Success({"response": response.to_dict()})
 
 
 async def run(
@@ -122,21 +122,11 @@ async def run(
 
     abci_client = ABCI_Client(app_host, int(app_port), genesis_file)
 
-    # abci_client.runBlock(block=tmock.Block(txs=[]))
+    abci_client.runBlock(block=tmock.Block(txs=[]))
 
-    test_tx = b"\n\x8e\x01\n\x8b\x01\n\x1c/cosmos.bank.v1beta1.MsgSend\x12k\n-cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72\x12-cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t\x1a\x0b\n\x05stake\x12\x0250\x12V\nN\nF\n\x1f/cosmos.crypto.secp256k1.PubKey\x12#\n!\x02'\x11\x08]\xb0\x91z<\xd85v\xe5OR\xc5\xefM\xa6{pb#\\),\t[\x07|8\xd6\xa1\x12\x04\n\x02\x08\x01\x12\x04\x10\xc0\x9a\x0c\x1a@\xfa!'v\xa1T\xac\xd4\xe5\xe0\x19\xefL\x0f\xf0\t\xb0\x94\xbfk^m\x0f\xa72\x84\xb1\xdaeY\x95\xbd_\x16c\xdf3NZ\x0f\xf6v\xad\xc8\xa8\xbbFE\xe8Y\x06\x9f\xa7\xf9\x14\x8f\x8e]\xaf\x01\xb3\x1dH\x92"
-
-    # service = BroadcastApiService(abci_client)
-
-    # server = Server()
-    # await server.start(tendermock_host, int(tendermock_port))
+    # test_tx = b"\n\x8e\x01\n\x8b\x01\n\x1c/cosmos.bank.v1beta1.MsgSend\x12k\n-cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72\x12-cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t\x1a\x0b\n\x05stake\x12\x0250\x12V\nN\nF\n\x1f/cosmos.crypto.secp256k1.PubKey\x12#\n!\x02'\x11\x08]\xb0\x91z<\xd85v\xe5OR\xc5\xefM\xa6{pb#\\),\t[\x07|8\xd6\xa1\x12\x04\n\x02\x08\x01\x12\x04\x10\xc0\x9a\x0c\x1a@\xfa!'v\xa1T\xac\xd4\xe5\xe0\x19\xefL\x0f\xf0\t\xb0\x94\xbfk^m\x0f\xa72\x84\xb1\xdaeY\x95\xbd_\x16c\xdf3NZ\x0f\xf6v\xad\xc8\xa8\xbbFE\xe8Y\x06\x9f\xa7\xf9\x14\x8f\x8e]\xaf\x01\xb3\x1dH\x92"
 
     tendermintRPC = TendermintRPC(abci_client)
-
-    data = "0A2D636F736D6F7331333472397338327176386670727A3379376677356C7634307975767368323835767865763032"
-
-    print(abci_client.abci_query(data, "/cosmos.auth.v1beta1.Query/Account", "0", "False"))
-    exit()
 
     class RequestHandler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
