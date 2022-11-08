@@ -12,8 +12,9 @@ import xmlrpc.server as rpc
 from jsonrpcserver import Success, method, serve
 import proto.tendermint.abci as abci
 import hashlib
-from jsonrpcserver import method, serve, Success, dispatch
+from jsonrpcserver import method, serve, Success, dispatch, Result
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from hexbytes import HexBytes
 
 import typer
 
@@ -60,11 +61,12 @@ class TendermintRPC:
     ## broadcasts
     # in Tendermock, all broadcasts block until the block with the transaction was executed
 
-    @method
     # does not need to return any response... but just doing sync should be fine
-    def broadcast_tx_async(self, tx: bytes) -> ResultBroadcastTx:
+    def broadcast_tx_async(self, tx: bytes) -> Result:  # -> ResultBroadcastTx:
         print("Hit endpoint broadcast_tx_async")
-        return self.broadcast(tx)
+        res = self.broadcast(tx)
+        print("result: " + res)
+        return Success(res)
 
     # waits for the response for checkTx
     def broadcast_tx_sync(self, tx: bytes) -> ResultBroadcastTx:
@@ -97,6 +99,17 @@ class TendermintRPC:
 
         return result
 
+    ## info queries
+    def abci_query(self, data, path, height, prove) -> Result:
+        print("Hit endpoint: ABCI Query")
+        print("data: " + str(data))
+        print("path: " + str(path))
+        print("height: " + str(height))
+        print("prove: " + str(prove))
+
+        response = self.abci_client.abci_query(data, path, height, prove)
+        return Success(result)
+
 
 async def run(
     genesis_file: str,
@@ -109,7 +122,7 @@ async def run(
 
     abci_client = ABCI_Client(app_host, int(app_port), genesis_file)
 
-    abci_client.runBlock(block=tmock.Block(txs=[]))
+    # abci_client.runBlock(block=tmock.Block(txs=[]))
 
     test_tx = b"\n\x8e\x01\n\x8b\x01\n\x1c/cosmos.bank.v1beta1.MsgSend\x12k\n-cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72\x12-cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t\x1a\x0b\n\x05stake\x12\x0250\x12V\nN\nF\n\x1f/cosmos.crypto.secp256k1.PubKey\x12#\n!\x02'\x11\x08]\xb0\x91z<\xd85v\xe5OR\xc5\xefM\xa6{pb#\\),\t[\x07|8\xd6\xa1\x12\x04\n\x02\x08\x01\x12\x04\x10\xc0\x9a\x0c\x1a@\xfa!'v\xa1T\xac\xd4\xe5\xe0\x19\xefL\x0f\xf0\t\xb0\x94\xbfk^m\x0f\xa72\x84\xb1\xdaeY\x95\xbd_\x16c\xdf3NZ\x0f\xf6v\xad\xc8\xa8\xbbFE\xe8Y\x06\x9f\xa7\xf9\x14\x8f\x8e]\xaf\x01\xb3\x1dH\x92"
 
@@ -120,6 +133,11 @@ async def run(
 
     tendermintRPC = TendermintRPC(abci_client)
 
+    data = "0A2D636F736D6F7331333472397338327176386670727A3379376677356C7634307975767368323835767865763032"
+
+    print(abci_client.abci_query(data, "/cosmos.auth.v1beta1.Query/Account", "0", "False"))
+    exit()
+
     class RequestHandler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
             response = dispatch(
@@ -127,6 +145,7 @@ async def run(
                 {
                     "broadcast_tx_sync": tendermintRPC.broadcast_tx_sync,
                     "broadcast_tx_async": tendermintRPC.broadcast_tx_async,
+                    "abci_query": tendermintRPC.abci_query,
                 },
             )
             if response is not None:
@@ -134,6 +153,7 @@ async def run(
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(str(response).encode())
+            print(response)
 
     HTTPServer((tendermock_host, int(tendermock_port)), RequestHandler).serve_forever()
 

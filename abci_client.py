@@ -88,7 +88,7 @@ class ABCI_Client:
         response = asyncio.get_event_loop().run_until_complete(
             self.stub.check_tx(tx=tx, type=abci.CheckTxType.NEW)
         )
-        
+
         print("checked tx")
 
         return response
@@ -214,3 +214,9 @@ class ABCI_Client:
         )
 
         return request
+
+    def abci_query(self, data, path, height, prove):
+        response = asyncio.get_event_loop().run_until_complete(
+            self.stub.query(data=bytes.fromhex(data), path=path, height=int(height), prove=prove == "True")
+        )
+        return response
