@@ -1,12 +1,12 @@
 echo 'docker exec -i tendermock simd query bank balances cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 --node=http://host.docker.internal:26657 --chain-id=tendermock --output=json'
 docker exec -i tendermock simd query bank balances cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 --node=http://host.docker.internal:26657 --chain-id=tendermock --output=json
 # return code: 0
-# {"balances":[{"denom":"stake","amount":"5000000000"}],"pagination":{"next_key":null,"total":"0"}}
+# {"balances":[{"denom":"stake","amount":"4999995000"}],"pagination":{"next_key":null,"total":"0"}}
 # 
 echo 'docker exec -i tendermock simd query account cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 --node=http://host.docker.internal:26657 --chain-id=tendermock --output=json'
 docker exec -i tendermock simd query account cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 --node=http://host.docker.internal:26657 --chain-id=tendermock --output=json
 # return code: 0
-# {"@type":"/cosmos.auth.v1beta1.BaseAccount","address":"cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72","pub_key":null,"account_number":"1","sequence":"0"}
+# {"@type":"/cosmos.auth.v1beta1.BaseAccount","address":"cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72","pub_key":{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AicRCF2wkXo82DV25U9Sxe9NpntwYiNcKSwJWwd8ONah"},"account_number":"1","sequence":"1"}
 # 
 echo 'docker exec -i tendermock simd tx bank send cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t 5000stake --from=node2 --chain-id=tendermock --generate-only'
 docker exec -i tendermock simd tx bank send cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t 5000stake --from=node2 --chain-id=tendermock --generate-only
@@ -19,15 +19,15 @@ docker exec -i tendermock tee tx_tmp.json
 # {"body":{"messages":[{"@type":"/cosmos.bank.v1beta1.MsgSend","from_address":"cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72","to_address":"cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t","amount":[{"denom":"stake","amount":"5000"}]}],"memo":"","timeout_height":"0","extension_options":[],"non_critical_extension_options":[]},"auth_info":{"signer_infos":[],"fee":{"amount":[],"gas_limit":"200000","payer":"","granter":""}},"signatures":[]}
 # 
 # 
-echo 'docker exec -i tendermock simd tx sign tx_tmp.json --chain-id=tendermock --from=node2 --offline --account-number 1 --sequence 0'
-docker exec -i tendermock simd tx sign tx_tmp.json --chain-id=tendermock --from=node2 --offline --account-number 1 --sequence 0
+echo 'docker exec -i tendermock simd tx sign tx_tmp.json --chain-id=tendermock --from=node2 --offline --account-number 1 --sequence 1'
+docker exec -i tendermock simd tx sign tx_tmp.json --chain-id=tendermock --from=node2 --offline --account-number 1 --sequence 1
 # return code: 0
-# {"body":{"messages":[{"@type":"/cosmos.bank.v1beta1.MsgSend","from_address":"cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72","to_address":"cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t","amount":[{"denom":"stake","amount":"5000"}]}],"memo":"","timeout_height":"0","extension_options":[],"non_critical_extension_options":[]},"auth_info":{"signer_infos":[{"public_key":{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AicRCF2wkXo82DV25U9Sxe9NpntwYiNcKSwJWwd8ONah"},"mode_info":{"single":{"mode":"SIGN_MODE_DIRECT"}},"sequence":"0"}],"fee":{"amount":[],"gas_limit":"200000","payer":"","granter":""}},"signatures":["joiiTtxA0YvNcRg30SxUBjYuZg7yo7p6g4eDhlWhCD4IldxaTw3U4JuBvu324YPMwnCOw1SubMBLHXlFbY+YXA=="]}
+# {"body":{"messages":[{"@type":"/cosmos.bank.v1beta1.MsgSend","from_address":"cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72","to_address":"cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t","amount":[{"denom":"stake","amount":"5000"}]}],"memo":"","timeout_height":"0","extension_options":[],"non_critical_extension_options":[]},"auth_info":{"signer_infos":[{"public_key":{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AicRCF2wkXo82DV25U9Sxe9NpntwYiNcKSwJWwd8ONah"},"mode_info":{"single":{"mode":"SIGN_MODE_DIRECT"}},"sequence":"1"}],"fee":{"amount":[],"gas_limit":"200000","payer":"","granter":""}},"signatures":["UYB/avL20XZfaOFbNXWIqFfnVtrR59+0LvRAld3EkAFApTpeacTxrylHzWnRfM1rtmH6Q3PcklioFiXD12NOiA=="]}
 # 
 echo 'docker exec -i tendermock tee signed_tx_tmp.json'
 docker exec -i tendermock tee signed_tx_tmp.json
 # return code: 0
-# {"body":{"messages":[{"@type":"/cosmos.bank.v1beta1.MsgSend","from_address":"cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72","to_address":"cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t","amount":[{"denom":"stake","amount":"5000"}]}],"memo":"","timeout_height":"0","extension_options":[],"non_critical_extension_options":[]},"auth_info":{"signer_infos":[{"public_key":{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AicRCF2wkXo82DV25U9Sxe9NpntwYiNcKSwJWwd8ONah"},"mode_info":{"single":{"mode":"SIGN_MODE_DIRECT"}},"sequence":"0"}],"fee":{"amount":[],"gas_limit":"200000","payer":"","granter":""}},"signatures":["joiiTtxA0YvNcRg30SxUBjYuZg7yo7p6g4eDhlWhCD4IldxaTw3U4JuBvu324YPMwnCOw1SubMBLHXlFbY+YXA=="]}
+# {"body":{"messages":[{"@type":"/cosmos.bank.v1beta1.MsgSend","from_address":"cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72","to_address":"cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t","amount":[{"denom":"stake","amount":"5000"}]}],"memo":"","timeout_height":"0","extension_options":[],"non_critical_extension_options":[]},"auth_info":{"signer_infos":[{"public_key":{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AicRCF2wkXo82DV25U9Sxe9NpntwYiNcKSwJWwd8ONah"},"mode_info":{"single":{"mode":"SIGN_MODE_DIRECT"}},"sequence":"1"}],"fee":{"amount":[],"gas_limit":"200000","payer":"","granter":""}},"signatures":["UYB/avL20XZfaOFbNXWIqFfnVtrR59+0LvRAld3EkAFApTpeacTxrylHzWnRfM1rtmH6Q3PcklioFiXD12NOiA=="]}
 # 
 # 
 echo 'docker exec -i tendermock simd tx broadcast --node http://host.docker.internal:26657 signed_tx_tmp.json'
@@ -50,5 +50,5 @@ docker exec -i tendermock simd tx broadcast --node http://host.docker.internal:2
 echo 'docker exec -i tendermock simd query bank balances cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 --node=http://host.docker.internal:26657 --chain-id=tendermock --output=json'
 docker exec -i tendermock simd query bank balances cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 --node=http://host.docker.internal:26657 --chain-id=tendermock --output=json
 # return code: 0
-# {"balances":[{"denom":"stake","amount":"4999995000"}],"pagination":{"next_key":null,"total":"0"}}
+# {"balances":[{"denom":"stake","amount":"4999990000"}],"pagination":{"next_key":null,"total":"0"}}
 # 
