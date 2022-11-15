@@ -38,3 +38,11 @@ Now, you can run the client that simulates a trace execution:
 ```python tendermock_client.py```
 
 Right now, it executes a single transaction.
+Output should look like this:
+```
+Balance before: {"balances":[{"denom":"stake","amount":"4999995000"}],"pagination":{"next_key":null,"total":"0"}}
+
+Balance after: {"balances":[{"denom":"stake","amount":"4999990000"}],"pagination":{"next_key":null,"total":"0"}}
+```
+
+You can run the client multiple times, and each time should decrease the token amount by 5000.
