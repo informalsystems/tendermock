@@ -15,6 +15,7 @@ import hashlib
 from jsonrpcserver import method, serve, Success, dispatch, Result
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from hexbytes import HexBytes
+import base64
 
 import typer
 
@@ -25,15 +26,6 @@ TM_HOST = "0.0.0.0"
 TM_PORT = "26657"
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
-
-
-class ResultBroadcastTx:
-    code: int = "0"
-    data: bytes = b""
-    log: str = ""
-    codespace: str = ""
-
-    hash: bytes = b""
 
 
 class BroadcastApiService(tgrpc.BroadcastApiBase):
@@ -62,20 +54,22 @@ class TendermintRPC:
     # in Tendermock, all broadcasts block until the block with the transaction was executed
 
     # does not need to return any response... but just doing sync should be fine
-    def broadcast_tx_async(self, tx: bytes) -> Result:  # -> ResultBroadcastTx:
+    def broadcast_tx_async(self, tx) -> Result:  # -> ResultBroadcastTx:
         print("Hit endpoint broadcast_tx_async")
-        res = self.broadcast(tx)
-        print("result: " + res)
-        return Success(res)
+        checkTxResponse, _ = self.broadcast(tx)
+        return Success({"response": checkTxResponse.to_json()})
 
     # waits for the response for checkTx
-    def broadcast_tx_sync(self, tx: bytes) -> ResultBroadcastTx:
-        print("Hit endpoint broadcast_tx_sync")
-        return self.broadcast(tx)
+    def broadcast_tx_sync(self, tx) -> Result:
+        print("> Hit endpoint broadcast_tx_sync")
+        _, deliverTxResponse = self.broadcast(tx)
+        return Success({"response": deliverTxResponse.to_json()})
 
-    def broadcast(self, tx: bytes) -> ResultBroadcastTx:
+    def broadcast(self, tx):
+        print("broadcasting")
         print(tx)
-        tx_bytes = bytes(tx)
+        tx_bytes = base64.b64decode(tx)
+        print(tx_bytes)
 
         checkTxResponse = self.abci_client.checkTx(tx_bytes)
 
@@ -86,18 +80,11 @@ class TendermintRPC:
             ]
         )
 
-        self.abci_client.runBlock(block)
+        deliverTxResponse = self.abci_client.runBlock(block)[0]
 
         print("Ran block")
 
-        result = ResultBroadcastTx()
-        result.code = checkTxResponse.code
-        result.codespace = checkTxResponse.codespace
-        result.data = checkTxResponse.data
-        result.log = checkTxResponse.log
-        result.hash = hashlib.sha256(tx)
-
-        return result
+        return checkTxResponse, deliverTxResponse
 
     ## info queries
     def abci_query(self, data, path, height, prove) -> Result:
@@ -118,15 +105,19 @@ async def run(
     app_host=APP_HOST,
     app_port=APP_PORT,
 ):
+    test_tx = "Co4BCosBChwvY29zbW9zLmJhbmsudjFiZXRhMS5Nc2dTZW5kEmsKLWNvc21vczF4NjN5MnA3d3pzeWY5bG4wYXQ1NnZkcGUzeDY2amFmOXF6aDg2dBItY29zbW9zMTUzcnBkbnAzamNxNGtwYWM4bmpseWY0Z21mNzI0aG02cmVwdTcyGgsKBXN0YWtlEgI1MBJYClAKRgofL2Nvc21vcy5jcnlwdG8uc2VjcDI1NmsxLlB1YktleRIjCiECwGJJVnYe3/6jqqAGuOVFuR9HDewkORvt7DUZ50kJuwwSBAoCCAEYARIEEMCaDBpAsteyOMZ4NDkRGSJhBW8AU1Zvix8w7xvcviHZmDueiq9YbKcGsS/G8YsyAvIMzhQvzz/FwOVvbKq7Bc0Mejxp9g=="
+
     logging.basicConfig(filename="tendermock.log", level=logging.INFO)
 
     abci_client = ABCI_Client(app_host, int(app_port), genesis_file)
 
     abci_client.runBlock(block=tmock.Block(txs=[]))
 
-    # test_tx = b"\n\x8e\x01\n\x8b\x01\n\x1c/cosmos.bank.v1beta1.MsgSend\x12k\n-cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72\x12-cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t\x1a\x0b\n\x05stake\x12\x0250\x12V\nN\nF\n\x1f/cosmos.crypto.secp256k1.PubKey\x12#\n!\x02'\x11\x08]\xb0\x91z<\xd85v\xe5OR\xc5\xefM\xa6{pb#\\),\t[\x07|8\xd6\xa1\x12\x04\n\x02\x08\x01\x12\x04\x10\xc0\x9a\x0c\x1a@\xfa!'v\xa1T\xac\xd4\xe5\xe0\x19\xefL\x0f\xf0\t\xb0\x94\xbfk^m\x0f\xa72\x84\xb1\xdaeY\x95\xbd_\x16c\xdf3NZ\x0f\xf6v\xad\xc8\xa8\xbbFE\xe8Y\x06\x9f\xa7\xf9\x14\x8f\x8e]\xaf\x01\xb3\x1dH\x92"
-
     tendermintRPC = TendermintRPC(abci_client)
+
+    tendermintRPC.broadcast_tx_sync(test_tx)
+    
+    # exit()
 
     class RequestHandler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
@@ -144,6 +135,8 @@ async def run(
                 self.end_headers()
                 self.wfile.write(str(response).encode())
             print(response)
+
+    
 
     HTTPServer((tendermock_host, int(tendermock_port)), RequestHandler).serve_forever()
 
