@@ -1,6 +1,11 @@
 ## Starting up
 
+To prepare, you need to grab a docker image:
+```docker pull informalofftermatt/testnet:tendermock```
+
+
 The following subsections should each be done in a separate shell.
+
 
 ### ABCI App
 
