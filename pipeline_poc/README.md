@@ -11,7 +11,7 @@ The following subsections should each be done in a separate shell.
 
 Start the ABCI app by running, in a terminal:
 
-```docker run --add-host=host.docker.internal:host-gateway --name tendermock -ti -p 26658:26658 -p 26656:26656 -p 9091:9091 -p 1317:1317 -p 9090:9090 informalofftermatt/testnet:tendermock simd start --transport=grpc --with-tendermint=false --grpc-only --rpc.laddr=tcp://host.docker.internal:99999```
+```docker run --add-host=host.docker.internal:host-gateway --name tendermock -ti -p 26658:26658 -p 26656:26656 -p 9091:9091 -p 1317:1317 -p 9090:9090 informalofftermatt/testnet:tendermock simd start --transport=grpc --with-tendermint=false --rpc.laddr=tcp://host.docker.internal:99999```
 
 (You may need to stop and remove an existing container with the name "tendermock", if it already exists.
 You can prefix the above command with `docker stop tendermock; docker rm tendermock;` if that's needed)
