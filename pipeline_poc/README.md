@@ -51,3 +51,7 @@ Balance after: {"balances":[{"denom":"stake","amount":"4999990000"}],"pagination
 ```
 
 You can run the client multiple times, and each time should decrease the token amount by 5000.
+
+
+https://user-images.githubusercontent.com/57488781/201970697-6f3c9039-d0fb-4437-a862-9d4d4398ea31.mp4
+
