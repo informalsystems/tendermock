@@ -48,6 +48,19 @@ if __name__ == "__main__":
     receiver = accounts[0]
     amount = Balance(5000, "stake")
 
+    # query balance before transaction
+    cmd = connector.CosmosCmd(
+        logfile,
+        SIMD_BINARY,
+        f"query bank balances {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --chain-id=tendermock --output=json".split(
+            " "
+        ),
+        [],
+    )
+    result = cmd.call()
+    print(f"Balance before: {result}")
+
+
     # //////////////////////////////////////////////////////////////////////////////////
     # // generate & sign transaction //
     cmd = connector.CosmosCmd(
@@ -113,4 +126,15 @@ if __name__ == "__main__":
         [sender.passphrase],
     )
     result = cmd.call()
-    print(result)
+
+    # query balance after transaction
+    cmd = connector.CosmosCmd(
+        logfile,
+        SIMD_BINARY,
+        f"query bank balances {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --chain-id=tendermock --output=json".split(
+            " "
+        ),
+        [],
+    )
+    result = cmd.call()
+    print(f"Balance after: {result}")
