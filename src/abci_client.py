@@ -23,6 +23,7 @@ class ABCI_Client:
         self.host = application_host
         self.port = application_port
         self.state = tstate.State()
+        print(f"> Connecting to ABCI on {application_host}:{application_port}")
         channel = Channel(host=self.host, port=self.port)
         self.stub = abci.AbciApplicationStub(channel)
 
@@ -83,13 +84,10 @@ class ABCI_Client:
             init_chain.applyResponseInitChain(self.state, response)
 
     def checkTx(self, tx: bytes) -> abci.ResponseCheckTx:
-        print("checking tx")
 
         response = asyncio.get_event_loop().run_until_complete(
             self.stub.check_tx(tx=tx, type=abci.CheckTxType.NEW)
         )
-
-        print("checked tx")
 
         return response
 
@@ -121,16 +119,13 @@ class ABCI_Client:
         responses = [abci.ResponseDeliverTx()] * len(txs)
         for (index, tx) in enumerate(txs):
             logging.info("Sending transaction: " + str(tx))
-            print("Sending transaction: " + str(tx))
 
             tx_bytes = tx.signed_tx
 
-            print(tx_bytes)
 
             response = asyncio.get_event_loop().run_until_complete(
                 self.stub.deliver_tx(tx=tx_bytes)
             )
-            print(response)
             logging.info(f"------> ResponseDeliverTx:\n{response}")
             responses[index] = response
         return responses

@@ -42,7 +42,6 @@ class BroadcastApiService(tgrpc.BroadcastApiBase):
                 tx,
             ]
         )
-        print(block)
         self.abci_client.runBlock(block)
 
 
@@ -55,21 +54,19 @@ class TendermintRPC:
 
     # does not need to return any response... but just doing sync should be fine
     def broadcast_tx_async(self, tx) -> Result:  # -> ResultBroadcastTx:
-        print("Hit endpoint broadcast_tx_async")
+        print(">>>> Hit endpoint broadcast_tx_async")
         checkTxResponse, _ = self.broadcast(tx)
         return Success({"response": checkTxResponse.to_json()})
 
     # waits for the response for checkTx
     def broadcast_tx_sync(self, tx) -> Result:
-        print("> Hit endpoint broadcast_tx_sync")
+        print(">>>> Hit endpoint broadcast_tx_sync")
         _, deliverTxResponse = self.broadcast(tx)
         return Success({"response": deliverTxResponse.to_json()})
 
     def broadcast(self, tx):
-        print("broadcasting")
-        print(tx)
+        print("> broadcasting a transition")
         tx_bytes = base64.b64decode(tx)
-        print(tx_bytes)
 
         checkTxResponse = self.abci_client.checkTx(tx_bytes)
 
@@ -82,13 +79,13 @@ class TendermintRPC:
 
         deliverTxResponse = self.abci_client.runBlock(block)[0]
 
-        print("Ran block")
+        print("> finished broadcasting")
 
         return checkTxResponse, deliverTxResponse
 
     ## info queries
     def abci_query(self, data, path, height, prove) -> Result:
-        print("Hit endpoint: ABCI Query")
+        print(">>>> Hit endpoint abci_query")
         print("data: " + str(data))
         print("path: " + str(path))
         print("height: " + str(height))
@@ -115,7 +112,7 @@ async def run(
 
     tendermintRPC = TendermintRPC(abci_client)
 
-    tendermintRPC.broadcast_tx_sync(test_tx)
+    # tendermintRPC.broadcast_tx_sync(test_tx)
     
     # exit()
 
@@ -134,9 +131,6 @@ async def run(
                 self.send_header("Content-type", "application/json")
                 self.end_headers()
                 self.wfile.write(str(response).encode())
-            print(response)
-
-    
 
     HTTPServer((tendermock_host, int(tendermock_port)), RequestHandler).serve_forever()
 
@@ -149,6 +143,8 @@ def serveBroadcastApi(
     app_host=APP_HOST,
     app_port=APP_PORT,
 ):
+    print(f">>>> Running tendermock with genesis file {genesis_file}")
+    print(f"> Listening on {tendermock_host}:{tendermock_port}")
     # allows nesting event loops, see https://pypi.org/project/nest-asyncio/
     nest_asyncio.apply()
 
