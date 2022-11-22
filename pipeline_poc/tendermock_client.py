@@ -1,7 +1,7 @@
 import connector
 import json
 
-DOCKER_PATH = "docker exec -i tendermock".split(" ")
+DOCKER_PATH = "docker exec -i simapp".split(" ")
 SIMD_BINARY = DOCKER_PATH + ["simd"]
 
 TENDERMOCK_HOST = "host.docker.internal"
