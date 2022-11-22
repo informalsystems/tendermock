@@ -1,0 +1,5 @@
+simd query bank balances cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 --node=http://host.docker.internal:26657 --chain-id=tendermock --output=json
+simd query account cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 --node=http://host.docker.internal:26657 --chain-id=tendermock --output=json
+simd tx bank send cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t 12345stake --node=http://host.docker.internal:26657 --chain-id=tendermock --generate-only > tx.json
+simd tx sign tx.json --chain-id=tendermock --from=cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72 --offline --account-number 1 --sequence 0 > signed_tx.json
+simd tx broadcast --node=http://host.docker.internal:26657 signed_tx.json
