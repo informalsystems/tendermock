@@ -81,7 +81,7 @@ if __name__ == "__main__":
     cmd = connector.CosmosCmd(
         logfile,
         SIMD_BINARY,
-        f"tx bank send {sender.address} {receiver.address} {amount.amount}{amount.cointype} --from={sender.name} --chain-id=tendermock --generate-only".split(
+        f"tx bank send {sender.address} {receiver.address} {amount.amount}{amount.cointype} --from={sender.name} --chain-id=tendermock --generate-only --keyring-backend=test".split(
             " "
         ),
         [],
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     cmd = connector.CosmosCmd(
         logfile,
         SIMD_BINARY,
-        f"tx sign tx_tmp.json --chain-id=tendermock --from={sender.name} --offline --account-number {account_number} --sequence {sequence}".split(
+        f"tx sign tx_tmp.json --chain-id=tendermock --from={sender.name} --offline --account-number {account_number} --sequence {sequence} --keyring-backend=test".split(
             " "
         ),
         [sender.passphrase],
