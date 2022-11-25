@@ -1,1 +1,4 @@
-**/tendermock.log
+__pycache__/
+*.py[cod]
+
+*.log
