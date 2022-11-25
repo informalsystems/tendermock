@@ -30,13 +30,15 @@ if __name__ == "__main__":
     accounts = [
         Account(
             [Balance(5000000000, "stake")],
-            "cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t",
+            # neither fatigue grass yellow wash magic purity test achieve bridge february lecture pipe cover notable kitchen success bulk ten stable leave cushion joke square
+            "cosmos1true75k5hh0s94hxa7s8w29ys65s4u9n8g5fh5",
             "node1",
             "tendermint",
         ),
         Account(
             [Balance(5000000000, "stake")],
-            "cosmos153rpdnp3jcq4kpac8njlyf4gmf724hm6repu72",
+            # height artist hobby lake tooth awful inherit local nuclear this milk area staff mountain naive vehicle forward mango lyrics retire online flock ceiling ignore
+            "cosmos1mpvq0pfagrk6ed9gstdqf04n8q8d7zca3tjanj",
             "node2",
             "tendermint",
         ),
