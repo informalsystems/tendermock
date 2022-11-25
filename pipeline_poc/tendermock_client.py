@@ -54,7 +54,7 @@ if __name__ == "__main__":
     cmd = connector.CosmosCmd(
         logfile,
         SIMD_BINARY,
-        f"query bank balances {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --chain-id=tendermock --output=json".split(
+        f"query bank balances {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --output=json".split(
             " "
         ),
         [],
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     cmd = connector.CosmosCmd(
         logfile,
         SIMD_BINARY,
-        f"query account {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --chain-id=tendermock --output=json".split(
+        f"query account {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --output=json".split(
             " "
         ),
         [],
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     cmd = connector.CosmosCmd(
         logfile,
         SIMD_BINARY,
-        f"query bank balances {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --chain-id=tendermock --output=json".split(
+        f"query bank balances {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --output=json".split(
             " "
         ),
         [],
