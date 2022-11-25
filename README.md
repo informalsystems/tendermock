@@ -42,7 +42,7 @@ docker build -t simd_abci .
 Copy the genesis file from the built image for `tendermock.py`.
 
 ```
-docker run --rm --entrypoint sh simd_abci -c "cat .simapp/config/genesis.json" > genesis.json
+docker run --rm --entrypoint cat simd_abci .simapp/config/genesis.json > genesis.json
 ```
 
 ## Play with Tendermock
