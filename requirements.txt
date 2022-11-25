@@ -5,3 +5,4 @@ jsonrpcserver>=5.0.9
 hexbytes>=0.3.0
 typer>=0.7.0
 protobuf>=4.21.9
+requests>=2.28.1
