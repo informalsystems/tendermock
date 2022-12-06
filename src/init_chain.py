@@ -16,8 +16,9 @@ class RequestInitChainFactory:
         genesis_params = genesis_json["consensus_params"]
 
         # times are read as seconds, but should be nanoseconds. seems its a difference in how Go vs Python handle this
-        genesis_params["evidence"]["max_age_duration"] /= 1e9
-    
+        genesis_params["evidence"]["max_age_duration"] = str(
+            int(int(genesis_params["evidence"]["max_age_duration"]) / 1e9)
+        )
 
         consensus_params = ttypes.ConsensusParams().from_dict(genesis_params)
 
@@ -39,7 +40,7 @@ class RequestInitChainFactory:
 
         app_state_bytes = self.createAppstateBytes(genesis_json)
 
-        consensus_params = self.createConsensusParams(genesis_json) 
+        consensus_params = self.createConsensusParams(genesis_json)
 
         request = abci.RequestInitChain(
             time=time,
@@ -52,16 +53,16 @@ class RequestInitChainFactory:
 
         return request
 
+
 def updateConsensusParams(params: abci.ConsensusParams, updates: abci.ConsensusParams):
     # need to mirror behaviour from tendermint/types/params.go:UpdateConsensusParams
     # but maybe modify consensusParams in-place
-   pass
+    pass
+
 
 def applyResponseInitChain(state: tstate.State, response: abci.ResponseInitChain):
-    if len(response.app_hash) > 0: state.app_hash = response.app_hash
+    if len(response.app_hash) > 0:
+        state.app_hash = response.app_hash
 
     if response.consensus_params != None:
         updateConsensusParams(state.consensus_params, response.consensus_params)
-
-    
-    
