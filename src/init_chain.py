@@ -14,6 +14,9 @@ class RequestInitChainFactory:
 
     def createConsensusParams(self, genesis_json):
         genesis_params = genesis_json["consensus_params"]
+
+        # times are read as seconds, but should be nanoseconds. seems its a difference in how Go vs Python handle this
+        genesis_params["evidence"]["maxAgeDuration"] /= 1e9
     
 
         consensus_params = ttypes.ConsensusParams().from_dict(genesis_params)
