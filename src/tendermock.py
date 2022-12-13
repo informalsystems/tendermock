@@ -108,6 +108,7 @@ async def run(
 
     abci_client = ABCI_Client(app_host, int(app_port), genesis_file)
 
+    # need to run an empty block, as the app misbehaves when queried before running the first block
     abci_client.runBlock(block=tmock.Block(txs=[]))
 
     tendermintRPC = TendermintRPC(abci_client)
