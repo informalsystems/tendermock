@@ -85,11 +85,11 @@ class TendermintRPC:
 
     ## info queries
     def abci_query(self, data, path, height, prove) -> Result:
-        print(">>>> Hit endpoint abci_query")
-        print("data: " + str(data))
-        print("path: " + str(path))
-        print("height: " + str(height))
-        print("prove: " + str(prove))
+        logging.info(">>>> Hit endpoint abci_query")
+        logging.info("data: " + str(data))
+        logging.info("path: " + str(path))
+        logging.info("height: " + str(height))
+        logging.info("prove: " + str(prove))
 
         response = self.abci_client.abci_query(data, path, height, prove)
         return Success({"response": response.to_dict()})

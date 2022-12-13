@@ -214,4 +214,5 @@ class ABCI_Client:
         response = asyncio.get_event_loop().run_until_complete(
             self.stub.query(data=bytes.fromhex(data), path=path, height=int(height), prove=prove == "True")
         )
+        logging.info(response)
         return response
