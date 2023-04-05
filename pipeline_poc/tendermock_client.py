@@ -6,6 +6,8 @@ SIMD_BINARY = DOCKER_PATH + ["simd"]
 
 TENDERMOCK_HOST = "host.docker.internal"
 TENDERMOCK_PORT = "26657"
+NODE_ADDR = f"--node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT}"
+# NODE_ADDR = "--node=tcp://localhost:26657"
 
 
 class Balance:
@@ -30,7 +32,7 @@ if __name__ == "__main__":
     accounts = [
         Account(
             [Balance(5000000000, "stake")],
-            "cosmos1x63y2p7wzsyf9ln0at56vdpe3x66jaf9qzh86t",
+            "cosmos134r9s82qv8fprz3y7fw5lv40yuvsh285vxev02",
             "node1",
             "tendermint",
         ),
@@ -52,7 +54,7 @@ if __name__ == "__main__":
     cmd = connector.CosmosCmd(
         logfile,
         SIMD_BINARY,
-        f"query bank balances {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --chain-id=tendermock --output=json".split(
+        f"query bank balances {sender.address} {NODE_ADDR} --chain-id=tendermock --output=json".split(
             " "
         ),
         [],
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     cmd = connector.CosmosCmd(
         logfile,
         SIMD_BINARY,
-        f"query account {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --chain-id=tendermock --output=json".split(
+        f"query account {sender.address} {NODE_ADDR} --chain-id=tendermock --output=json".split(
             " "
         ),
         [],
@@ -120,7 +122,7 @@ if __name__ == "__main__":
     cmd = connector.CosmosCmd(
         logfile,
         SIMD_BINARY,
-        f"tx broadcast --node http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} signed_tx_tmp.json".split(
+        f"tx broadcast {NODE_ADDR} signed_tx_tmp.json".split(
             " "
         ),
         [sender.passphrase],
@@ -131,7 +133,7 @@ if __name__ == "__main__":
     cmd = connector.CosmosCmd(
         logfile,
         SIMD_BINARY,
-        f"query bank balances {sender.address} --node=http://{TENDERMOCK_HOST}:{TENDERMOCK_PORT} --chain-id=tendermock --output=json".split(
+        f"query bank balances {sender.address} {NODE_ADDR} --chain-id=tendermock --output=json".split(
             " "
         ),
         [],
