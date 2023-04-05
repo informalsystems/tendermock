@@ -17,8 +17,10 @@ class RequestInitChainFactory:
 
         # times are read as seconds, but should be nanoseconds. seems its a difference in how Go vs Python handle this
         genesis_params["evidence"]["max_age_duration"] = str(
-            int(int(genesis_params["evidence"]["max_age_duration"]) / 1e9)
+            int(genesis_params["evidence"]["max_age_duration"])
         )
+
+        print(genesis_params)
 
         consensus_params = ttypes.ConsensusParams().from_dict(genesis_params)
 
