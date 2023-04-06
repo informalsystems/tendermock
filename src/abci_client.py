@@ -19,13 +19,22 @@ from utils import *
 
 
 class ABCI_Client:
-    def __init__(self, application_host, application_port, genesis_file):
-        self.host = application_host
-        self.port = application_port
+    def __init__(self, application_addresses, genesis_file):
+        self.application_addresses = application_addresses
         self.state = tstate.State()
-        print(f"> Connecting to ABCI on {application_host}:{application_port}")
-        channel = Channel(host=self.host, port=self.port)
-        self.stub = abci.AbciApplicationStub(channel)
+
+        self.appStubs = {}
+
+        print("Connecting to ABCI hosts")
+        for address in self.application_addresses:
+            host = address[0]
+            port = address[1]
+            print(f"> Connecting to ABCI on {host}:{port}")
+            channel = Channel(host=host, port=port)
+            self.appStubs[address] = abci.AbciApplicationStub(channel)
+
+        if len(self.appStubs) == 0:
+            raise Exception("Error: Should provide at least one application address")
 
         with open(genesis_file, "r") as genesis_fileobject:
             genesis_json = json.load(genesis_fileobject)
@@ -66,32 +75,42 @@ class ABCI_Client:
                 app_hash=str.encode(json.dumps(genesis_json["app_state"])),
             )
 
-            logging.info(f"------> RequestInitChain:\n{initChainRequest}")
+            responses = []
 
-            response = asyncio.get_event_loop().run_until_complete(
-                self.stub.init_chain(
-                    time=initChainRequest.time,
-                    chain_id=initChainRequest.chain_id,
-                    consensus_params=initChainRequest.consensus_params,
-                    validators=initChainRequest.validators,
-                    initial_height=initChainRequest.initial_height,
-                    app_state_bytes=initChainRequest.app_state_bytes,
+            for addr in self.application_addresses:
+                logging.info(f"initializing chain at {addr[0]}:{addr[1]}")
+                logging.info(f"------> RequestInitChain:\n{initChainRequest}")
+
+                response = asyncio.get_event_loop().run_until_complete(
+                    self.appStubs.get(addr).init_chain(
+                        time=initChainRequest.time,
+                        chain_id=initChainRequest.chain_id,
+                        consensus_params=initChainRequest.consensus_params,
+                        validators=initChainRequest.validators,
+                        initial_height=initChainRequest.initial_height,
+                        app_state_bytes=initChainRequest.app_state_bytes,
+                    )
                 )
-            )
 
-            logging.info(f"------> ResponseInitChain:\n{response}")
+                logging.info(f"------> ResponseInitChain:\n{response}")
+                responses.append(response)
 
-            init_chain.applyResponseInitChain(self.state, response)
+            logging.info("using first response to update state")
+            init_chain.applyResponseInitChain(self.state, responses[0])
+
+    def getFirstAppStubAndAddress(self):
+        return self.application_addresses[0], self.appStubs[self.application_addresses[0]]
 
     def checkTx(self, tx: bytes) -> abci.ResponseCheckTx:
-
+        address, appStub = self.getFirstAppStubAndAddress()
+        logging.info(f"checking transaction with app at {address}")
         response = asyncio.get_event_loop().run_until_complete(
-            self.stub.check_tx(tx=tx, type=abci.CheckTxType.NEW)
+            appStub.check_tx(tx=tx, type=abci.CheckTxType.NEW)
         )
 
         return response
 
-    def _beginBlock(self, block: tmock.Block):
+    def _beginBlock(self, appStub, block: tmock.Block):
         # TODO: default logic, change this later to take the values from the given block
         signers = {val: True for val in self.state.last_validators.validators}
 
@@ -105,7 +124,7 @@ class ABCI_Client:
         )
 
         response = asyncio.get_event_loop().run_until_complete(
-            self.stub.begin_block(
+            appStub.begin_block(
                 header=beginBlockRequest.header,
                 hash=beginBlockRequest.hash,
                 last_commit_info=beginBlockRequest.last_commit_info,
@@ -115,47 +134,60 @@ class ABCI_Client:
 
         logging.info(f"------> ResponseBeginBlock:\n{response}")
 
-    def _deliverTxs(self, txs: list[bytes]) -> list[abci.ResponseDeliverTx]:
+    def _deliverTxs(self, appStub, txs: list[bytes]) -> list[abci.ResponseDeliverTx]:
         responses = [abci.ResponseDeliverTx()] * len(txs)
-        for (index, tx) in enumerate(txs):
+        for index, tx in enumerate(txs):
             logging.info("Sending transaction: " + str(tx))
 
             tx_bytes = tx.signed_tx
 
-
             response = asyncio.get_event_loop().run_until_complete(
-                self.stub.deliver_tx(tx=tx_bytes)
+                appStub.deliver_tx(tx=tx_bytes)
             )
             logging.info(f"------> ResponseDeliverTx:\n{response}")
             responses[index] = response
         return responses
 
-    def _endBlock(self):
+    def _endBlock(self, appStub):
         response = asyncio.get_event_loop().run_until_complete(
-            self.stub.end_block(height=self.state.last_block_height + 1)
+            appStub.end_block(height=self.state.last_block_height + 1)
         )
         logging.info(f"------> ResponseEndBlock:\n{response}")
 
-    def _commit(self):
-        response = asyncio.get_event_loop().run_until_complete(self.stub.commit())
+    def _commit(self, appStub):
+        response = asyncio.get_event_loop().run_until_complete(appStub.commit())
         logging.info(f"------> ResponseCommit:\n{response}")
 
     # for block.txs[i], the ResponseDeliverTx is at position i of the returned list
-    def runBlock(self, block: tmock.Block) -> list[abci.ResponseDeliverTx]:
-        self._beginBlock(block)
+    def runBlockForOneApp(
+        self, appStub, block: tmock.Block
+    ) -> list[abci.ResponseDeliverTx]:
+        self._beginBlock(appStub, block)
 
         block_txs = block.txs
         if block_txs:
-            responses = self._deliverTxs(block_txs)
+            responses = self._deliverTxs(appStub, block_txs)
         else:
             logging.info("Sending no transactions")
             responses = []
 
-        self._endBlock()
-        self._commit()
+        self._endBlock(appStub)
+        self._commit(appStub)
 
-        self.state.last_block_height += 1
         return responses
+
+    def runBlock(self, block: tmock.Block) -> dict[(str, str), list[abci.ResponseDeliverTx]]:
+        """Runs a block on all connected apps.
+        Returns a map of addresses to lists of responses: Each app responds to each Tx
+        """
+        appResponses = {}
+        for addr in self.application_addresses:
+            logging.info(f"running block for app at {addr[0]}:{addr[1]}")
+            appStub = self.appStubs[addr]
+            appResponses[addr] = self.runBlockForOneApp(appStub, block)
+        self.state.last_block_height += 1
+
+        return appResponses
 
     def _createHeader(
         self,
@@ -211,8 +243,17 @@ class ABCI_Client:
         return request
 
     def abci_query(self, data, path, height, prove):
+        logging.info(len(self.application_addresses))
+        appAddr = self.application_addresses[0]
+        appStub = self.appStubs.get(appAddr)
+        print(appStub)
         response = asyncio.get_event_loop().run_until_complete(
-            self.stub.query(data=bytes.fromhex(data), path=path, height=int(height), prove=prove == "True")
+            appStub.query(
+                data=bytes.fromhex(data),
+                path=path,
+                height=int(height),
+                prove=prove == "True",
+            )
         )
         logging.info(response)
         return response

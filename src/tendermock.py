@@ -53,21 +53,23 @@ class TendermintRPC:
     # in Tendermock, all broadcasts block until the block with the transaction was executed
 
     # does not need to return any response... but just doing sync should be fine
-    def broadcast_tx_async(self, tx) -> Result:  # -> ResultBroadcastTx:
+    def broadcast_tx_async(self, tx) -> Result:
         print(">>>> Hit endpoint broadcast_tx_async")
         checkTxResponse, _ = self.broadcast(tx)
-        return Success({"response": checkTxResponse.to_json()})
+        return Success()
 
     # waits for the response for checkTx
     def broadcast_tx_sync(self, tx) -> Result:
         print(">>>> Hit endpoint broadcast_tx_sync")
         _, deliverTxResponse = self.broadcast(tx)
-        return Success({"response": deliverTxResponse.to_json()})
+        return Success()
 
     def broadcast(self, tx):
         print("> broadcasting a transition")
         tx_bytes = base64.b64decode(tx)
 
+        logging.info("Letting first application check the transaction")
+        
         checkTxResponse = self.abci_client.checkTx(tx_bytes)
 
         tx = tmock.Transaction(signed_tx=tx_bytes)
@@ -77,7 +79,7 @@ class TendermintRPC:
             ]
         )
 
-        deliverTxResponse = self.abci_client.runBlock(block)[0]
+        deliverTxResponse = self.abci_client.runBlock(block)
 
         print("> finished broadcasting")
 
@@ -99,14 +101,14 @@ async def run(
     genesis_file: str,
     tendermock_host=TM_HOST,
     tendermock_port=TM_PORT,
-    app_host=APP_HOST,
-    app_port=APP_PORT,
+    app_addresses: list[(str, str)]= [(APP_HOST, APP_PORT)]
 ):
     test_tx = "Co4BCosBChwvY29zbW9zLmJhbmsudjFiZXRhMS5Nc2dTZW5kEmsKLWNvc21vczF4NjN5MnA3d3pzeWY5bG4wYXQ1NnZkcGUzeDY2amFmOXF6aDg2dBItY29zbW9zMTUzcnBkbnAzamNxNGtwYWM4bmpseWY0Z21mNzI0aG02cmVwdTcyGgsKBXN0YWtlEgI1MBJYClAKRgofL2Nvc21vcy5jcnlwdG8uc2VjcDI1NmsxLlB1YktleRIjCiECwGJJVnYe3/6jqqAGuOVFuR9HDewkORvt7DUZ50kJuwwSBAoCCAEYARIEEMCaDBpAsteyOMZ4NDkRGSJhBW8AU1Zvix8w7xvcviHZmDueiq9YbKcGsS/G8YsyAvIMzhQvzz/FwOVvbKq7Bc0Mejxp9g=="
 
     logging.basicConfig(filename="tendermock.log", level=logging.INFO)
 
-    abci_client = ABCI_Client(app_host, int(app_port), genesis_file)
+
+    abci_client = ABCI_Client(app_addresses, genesis_file)
 
     # need to run an empty block, as the app misbehaves when queried before running the first block
     abci_client.runBlock(block=tmock.Block(txs=[]))
@@ -141,21 +143,21 @@ def serveBroadcastApi(
     genesis_file: str,
     tendermock_host=TM_HOST,
     tendermock_port=TM_PORT,
-    app_host=APP_HOST,
-    app_port=APP_PORT,
+    app_addresses: str = [f"{APP_HOST}:{APP_PORT}"]
 ):
     print(f">>>> Running tendermock with genesis file {genesis_file}")
     print(f"> Listening on {tendermock_host}:{tendermock_port}")
     # allows nesting event loops, see https://pypi.org/project/nest-asyncio/
     nest_asyncio.apply()
 
+    app_addresses = [(address.split(":")[0], address.split(":")[1]) for address in app_addresses.split(",")]
+
     response = asyncio.run(
         run(
             genesis_file,
             tendermock_host=tendermock_host,
             tendermock_port=tendermock_port,
-            app_host=app_host,
-            app_port=app_port,
+            app_addresses=app_addresses
         )
     )
 

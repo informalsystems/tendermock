@@ -11,7 +11,7 @@ The following subsections should each be done in a separate shell.
 
 Start the ABCI app by running, in a terminal:
 
-```docker run --add-host=host.docker.internal:host-gateway --name simapp -ti -p 26658:26658 -p 26656:26656 -p 9091:9091 -p 1317:1317 -p 9090:9090 informalofftermatt/testnet:tendermock simd start --transport=grpc --with-tendermint=false --grpc-only --rpc.laddr=tcp://host.docker.internal:99999```
+```docker run --add-host=host.docker.internal:host-gateway --name simapp -ti -p 26658:26658 informalofftermatt/testnet:tendermock simd start --transport=grpc --with-tendermint=false --grpc-only --rpc.laddr=tcp://host.docker.internal:99999```
 
 (You may need to stop and remove an existing container with the name "simapp", if it already exists.
 You can prefix the above command with `docker stop simapp; docker rm simapp;` if that's needed)
@@ -55,3 +55,36 @@ You can run the client multiple times, and each time should decrease the token a
 
 https://user-images.githubusercontent.com/57488781/201970697-6f3c9039-d0fb-4437-a862-9d4d4398ea31.mp4
 
+
+
+## Multi Chain Test
+
+Start chains by running, in separate terminals:
+
+```
+docker stop simapp; docker rm simapp; docker run --add-host=host.docker.internal:host-gateway --name simapp -p 26658:26658 -ti informalofftermatt/testnet:tendermock simd start --transport=grpc --with-tendermint=false --grpc-only --rpc.laddr=tcp://host.docker.internal:99999
+```
+
+```
+docker stop simapp2; docker rm simapp2; docker run --add-host=host.docker.internal:host-gateway --name simapp2 -p 36658:26658 -ti informalofftermatt/testnet:tendermock simd start --transport=grpc --with-tendermint=false --grpc-only --rpc.laddr=tcp://host.docker.internal:99999
+```
+
+```
+python3 ../src/tendermock.py genesis.json --tendermock-host localhost --tendermock-port 26657 --app-addresses localhost:36658,
+localhost:26658
+```
+
+Lastly, run
+
+```python3 tendermock_multichainclient.py```
+
+Expected output is 
+```
+Balance before on Simapp1: {"balances":[{"denom":"stake","amount":"5000000000"}],"pagination":{"next_key":null,"total":"0"}}
+
+Balance before on Simapp2: {"balances":[{"denom":"stake","amount":"5000000000"}],"pagination":{"next_key":null,"total":"0"}}
+
+Balance after on Simapp1: {"balances":[{"denom":"stake","amount":"4999995000"}],"pagination":{"next_key":null,"total":"0"}}
+
+Balance after on Simapp2: {"balances":[{"denom":"stake","amount":"4999995000"}],"pagination":{"next_key":null,"total":"0"}}
+```
