@@ -1,1 +1,3 @@
 __pycache__/**
+tendermock.log
+tendermint_client.log
