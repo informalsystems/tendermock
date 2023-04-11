@@ -3,6 +3,7 @@ import proto.tendermint.types as ttypes
 import proto.tendermint.crypto as tcrypto
 import proto.tendermint.state as tstate
 import proto.tendermint.abci as abci
+import time
 
 
 class RequestInitChainFactory:
@@ -17,7 +18,7 @@ class RequestInitChainFactory:
 
         # times are read as seconds, but should be nanoseconds. seems its a difference in how Go vs Python handle this
         genesis_params["evidence"]["max_age_duration"] = str(
-            int(genesis_params["evidence"]["max_age_duration"])
+            int(genesis_params["evidence"]["max_age_duration"]) / 10**9
         )
 
         print(genesis_params)
