@@ -96,13 +96,12 @@ class TendermintRPC:
         response = self.abci_client.abci_query(data, path, height, prove)
         return Success({"response": response.to_dict()})
 
-    def block(self, height) -> Result:
+    def block(self) -> Result:
         """
         TODO: This method is a placeholder that simply returns a success.
         If needed, implement properly in the future.
         """
         logging.info("Hit endpoint block")
-        logging.info(f"height: {height}")
         
         return Success({"response": True})
 
