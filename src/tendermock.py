@@ -63,6 +63,11 @@ class TendermintRPC:
         print(">>>> Hit endpoint broadcast_tx_sync")
         _, deliverTxResponse = self.broadcast(tx)
         return Success()
+    
+    def broadcast_tx_commit(self, tx) -> Result:
+        print(">>>> Hit endpoint broadcast_tx_commit")
+        _, _ = self.broadcast(tx)
+        return Success()
 
     def broadcast(self, tx):
         print("> broadcasting a transition")
@@ -140,6 +145,7 @@ async def run(
                 {
                     "broadcast_tx_sync": tendermintRPC.broadcast_tx_sync,
                     "broadcast_tx_async": tendermintRPC.broadcast_tx_async,
+                    "broadcast_tx_commit": tendermintRPC.broadcast_tx_commit,
                     "abci_query": tendermintRPC.abci_query,
                     "block": tendermintRPC.block
                 },
