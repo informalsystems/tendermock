@@ -246,7 +246,6 @@ class ABCI_Client:
         logging.info(len(self.application_addresses))
         appAddr = self.application_addresses[0]
         appStub = self.appStubs.get(appAddr)
-        print(appStub)
         response = asyncio.get_event_loop().run_until_complete(
             appStub.query(
                 data=bytes.fromhex(data),
@@ -257,3 +256,4 @@ class ABCI_Client:
         )
         logging.info(response)
         return response
+    

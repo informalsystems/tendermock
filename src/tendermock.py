@@ -96,6 +96,16 @@ class TendermintRPC:
         response = self.abci_client.abci_query(data, path, height, prove)
         return Success({"response": response.to_dict()})
 
+    def block(self, height) -> Result:
+        """
+        TODO: This method is a placeholder that simply returns a success.
+        If needed, implement properly in the future.
+        """
+        logging.info("Hit endpoint block")
+        logging.info(f"height: {height}")
+        
+        return Success({"response": True})
+
 
 async def run(
     genesis_file: str,
@@ -120,9 +130,14 @@ async def run(
     # exit()
 
     class RequestHandler(BaseHTTPRequestHandler):
+        def dispatchHelper(self) -> str:
+            request = self.rfile.read(int(str(self.headers["Content-Length"]))).decode()
+            logging.info(f"Dispatching request: {request}")
+            return request
+            
         def do_POST(self) -> None:
             response = dispatch(
-                self.rfile.read(int(str(self.headers["Content-Length"]))).decode(),
+                self.dispatchHelper(),
                 {
                     "broadcast_tx_sync": tendermintRPC.broadcast_tx_sync,
                     "broadcast_tx_async": tendermintRPC.broadcast_tx_async,
