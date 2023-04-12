@@ -142,6 +142,7 @@ async def run(
                     "broadcast_tx_sync": tendermintRPC.broadcast_tx_sync,
                     "broadcast_tx_async": tendermintRPC.broadcast_tx_async,
                     "abci_query": tendermintRPC.abci_query,
+                    "block": tendermintRPC.block
                 },
             )
             if response is not None:
