@@ -19,20 +19,6 @@ class Connector:
         print(text, file=self.shell_out)
 
 
-class SleepCmd(Connector):
-    """A single command that delays by n seconds"""
-
-    def __init__(self, shell_out, sleep_sec):
-        super().__init__(shell_out)
-        self.sleep_sec = sleep_sec
-
-    def call(self):
-        """Call a sleep command"""
-        self.shlog("sleep {s}".format(s=self.sleep_sec))
-        time.sleep(self.sleep_sec)
-        return True
-
-
 class CosmosCmd(Connector):
     """A single command to be executed via CLI"""
 
