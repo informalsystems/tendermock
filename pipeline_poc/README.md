@@ -70,8 +70,7 @@ docker stop simapp2; docker rm simapp2; docker run --add-host=host.docker.intern
 ```
 
 ```
-python3 ../src/tendermock.py genesis.json --tendermock-host localhost --tendermock-port 26657 --app-addresses localhost:36658,
-localhost:26658
+python3 ../src/tendermock.py genesis.json --tendermock-host localhost --tendermock-port 26657 --app-addresses localhost:36658,localhost:26658
 ```
 
 Lastly, run
